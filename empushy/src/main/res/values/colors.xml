@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="empushyPrimary">#fdcc52</color>
+    <color name="empushyDark">#86484848</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="colorPurple">#7b4397</color>
+    <color name="colorPurpleLight">#97438c</color>
+    <color name="colorRed">#dc2430</color>
+    <color name="colorRedLight">#dc247a</color>
+    <color name="colorGold">#fdcc52</color>
+    <color name="colorBlue">#A2B4D8</color>
+    <color name="colorSaffron">#FF9B2B</color>
+    <color name="colorDarkBlue">#25233F</color>
+    <color name="InactiveBottomNavIconColor">#f9f9f9</color>
+    <color name="white">#ffffff</color>
+</resources>

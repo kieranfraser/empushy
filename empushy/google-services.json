@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "410171203943",
+    "firebase_url": "https://empushy-9151a.firebaseio.com",
+    "project_id": "empushy-9151a",
+    "storage_bucket": "empushy-9151a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:410171203943:android:ee551da2ec169d6a",
+        "android_client_info": {
+          "package_name": "eu.aempathy.empushy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "410171203943-73m8tt7doqsnp4l6npnd90rs2fob79sl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhtL8Zdn3dDfsHrGLOK2S3VXwQ8QPDX78"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

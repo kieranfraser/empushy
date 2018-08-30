@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:custom="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="eu.aempathy.artificialempathymobile.MainActivity"
+    android:orientation="vertical">
+
+    <eu.aempathy.empushy.utils.EmpushyToggleButton
+        android:id="@+id/tb_empushy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        custom:titleText="Background title"
+        custom:valueColor="@android:color/holo_blue_bright"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hello World!"/>
+
+</LinearLayout>
