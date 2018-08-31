@@ -82,8 +82,6 @@ class EmpushyToggleButton : LinearLayout {
                         // delete all apps running service
                         // notificationlistenerservice running should pick up and log out
                         // removes running notification (this code)
-
-                        authInstance.signOut()
                         Toast.makeText(activity, "Logged out of EmPushy.", Toast.LENGTH_LONG).show()
                     }
                 }

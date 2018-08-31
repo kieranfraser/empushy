@@ -65,6 +65,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
+        subscribeToRunning()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             promote26(items, update)
         } else {
@@ -200,7 +201,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         activeList = ArrayList()
         cachedList = ArrayList()
         // get rules
-        subscribeToRunning()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -337,15 +337,21 @@ class EmpushyNotificationService : NotificationListenerService() {
     var runningReadListener: ChildEventListener = object : ChildEventListener {
 
         override fun onChildRemoved(p0: DataSnapshot) {
+            Log.d(TAG, "Child removed!!!")
             if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+                Log.d(TAG, "Auth instance not null!!!")
                 val currentUser = authInstance?.currentUser
                 if (currentUser != null) {
+                    Log.d(TAG, "Current user not null!!!")
                     val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         nm.deleteNotificationChannel(ANDROID_CHANNEL_ID)
                     } else {
                         nm.cancelAll()
                     }
+
+                    Log.d(TAG, "Signing out!")
+                    authInstance?.signOut()
                     stopService()
                 }
             }
