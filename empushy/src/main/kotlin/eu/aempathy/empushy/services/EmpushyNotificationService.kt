@@ -73,6 +73,8 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onDataChange(snapshot: DataSnapshot) {
             if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
                 startNotificationService(ArrayList(), false)
+            else
+                stopService()
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}
