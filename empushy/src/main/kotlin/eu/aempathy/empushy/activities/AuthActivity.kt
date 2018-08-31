@@ -18,7 +18,6 @@ import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.services.EmpushyNotificationService
-import eu.aempathy.empushy.utils.EmpushyToggleButton
 import eu.aempathy.empushy.utils.NotificationUtil
 import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
@@ -150,9 +149,7 @@ class AuthActivity : AppCompatActivity() {
     var runningReadListener: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {
-            Log.d(TAG, "In snapshot")
             if(snapshot.childrenCount<1){
-                Log.d(TAG, "Creating notification")
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(myService)
