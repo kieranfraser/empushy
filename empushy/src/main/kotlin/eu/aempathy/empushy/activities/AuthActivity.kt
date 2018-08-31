@@ -162,6 +162,7 @@ class AuthActivity : AppCompatActivity() {
                             finish()
                         }
             }
+            finish()
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}

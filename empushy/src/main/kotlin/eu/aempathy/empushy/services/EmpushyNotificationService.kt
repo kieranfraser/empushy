@@ -354,12 +354,13 @@ class EmpushyNotificationService : NotificationListenerService() {
     var runningReadListener: ChildEventListener = object : ChildEventListener {
 
         override fun onChildRemoved(p0: DataSnapshot) {
-            Log.d(TAG, "Child removed!!!")
             if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
-                Log.d(TAG, "Auth instance not null!!!")
                 val currentUser = authInstance?.currentUser
                 if (currentUser != null) {
-                    Log.d(TAG, "Current user not null!!!")
+
+                    Log.d(TAG, "Signing out!")
+                    authInstance?.signOut()
+
                     val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         nm.deleteNotificationChannel(ANDROID_CHANNEL_ID)
@@ -367,8 +368,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                         nm.cancelAll()
                     }
 
-                    Log.d(TAG, "Signing out!")
-                    authInstance?.signOut()
                     stopService()
                 }
             }

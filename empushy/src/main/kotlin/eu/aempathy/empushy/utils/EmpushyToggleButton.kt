@@ -1,8 +1,10 @@
 package eu.aempathy.empushy.utils
 
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -16,6 +18,7 @@ import com.google.firebase.database.FirebaseDatabase
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.activities.AuthActivity
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.services.EmpushyNotificationService
 
 /**
  * Created by Kieran on 29/06/2018.
@@ -82,6 +85,15 @@ class EmpushyToggleButton : LinearLayout {
                         // delete all apps running service
                         // notificationlistenerservice running should pick up and log out
                         // removes running notification (this code)
+                        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            nm.deleteNotificationChannel(EmpushyNotificationService.ANDROID_CHANNEL_ID)
+                        } else {
+                            nm.cancelAll()
+                        }
+                        context.stopService(Intent(context, EmpushyNotificationService::class.java));
+                        authInstance.signOut()
+                        // checks if notification service running.. if so, stop
                         Toast.makeText(activity, "Logged out of EmPushy.", Toast.LENGTH_LONG).show()
                     }
                 }
