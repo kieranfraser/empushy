@@ -6,6 +6,13 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.Settings
 import android.util.Log
+import android.app.ActivityManager.RunningAppProcessInfo
+import android.content.Context.ACTIVITY_SERVICE
+import android.app.ActivityManager
+import eu.aempathy.empushy.activities.AuthActivity
+import android.content.Context.ACTIVITY_SERVICE
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 
 
 /**
@@ -15,8 +22,7 @@ class StateUtils {
 
     companion object {
 
-        val TAG = javaClass.simpleName;
-
+        private val TAG = StateUtils::class.java.simpleName
         /**
          * Returns whether or not the notification listener service has
          * been granted access to the device notifications by the user.
@@ -51,6 +57,33 @@ class StateUtils {
             }
             return false
 
+        }
+
+        fun isNamedProcessRunning(context: Context, processName: String): Boolean {
+            Log.d(TAG, "Getting running processes")
+            /*val manager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+            val processes = manager.runningAppProcesses
+            for (process in processes) {
+                Log.d(TAG, "Process name: "+process.processName)
+                if (processName == process.processName) {
+                    return true
+                }
+            }
+            return false*/
+            val actvityManager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+            val procInfos = actvityManager.runningAppProcesses
+            for (runningProInfo in procInfos) {
+                Log.d("Running Processes", "()()" + runningProInfo.processName)
+            }
+            return false
+        }
+
+        fun isNetworkAvailable(context:Context): Boolean {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE)
+            return if (connectivityManager is ConnectivityManager) {
+                val networkInfo: NetworkInfo? = connectivityManager.activeNetworkInfo
+                networkInfo?.isConnected ?: false
+            } else false
         }
     }
 }

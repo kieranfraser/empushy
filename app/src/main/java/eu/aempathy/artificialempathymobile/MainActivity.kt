@@ -1,12 +1,8 @@
 package eu.aempathy.artificialempathymobile
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import eu.aempathy.empushy.init.Empushy
-import eu.aempathy.empushy.init.Empushy.RC_SIGN_IN
-import eu.aempathy.empushy.utils.EmpushyToggleButton
 
 class MainActivity : AppCompatActivity() {
 

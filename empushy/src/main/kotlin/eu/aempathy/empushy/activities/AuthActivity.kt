@@ -1,25 +1,33 @@
 package eu.aempathy.empushy.activities
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.support.v7.app.AppCompatActivity
-import android.view.View
+import android.util.Log
 import android.view.Window
 import android.widget.Button
 import android.widget.Toast
 import com.firebase.ui.auth.AuthUI
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.services.EmpushyNotificationService
 import eu.aempathy.empushy.utils.EmpushyToggleButton
+import eu.aempathy.empushy.utils.NotificationUtil
 import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
 class AuthActivity : AppCompatActivity() {
 
     private val TAG = AuthActivity::class.java.simpleName
+    private var firebaseApp: FirebaseApp ?= null
+    private var runningRef: DatabaseReference ?= null
 
     // Choose authentication providers
     var providers: List<AuthUI.IdpConfig> = Arrays.asList(
@@ -39,14 +47,18 @@ class AuthActivity : AppCompatActivity() {
         val usageGranted = StateUtils.isUsagePermissionGranted(applicationContext)
         if (listenerGranted && usageGranted) {
             Empushy.initEmpushyApp(applicationContext)
-            val firebaseApp = FirebaseApp.getInstance("empushy")
+            firebaseApp = FirebaseApp.getInstance("empushy")
             if (applicationContext != null) {
-                startActivityForResult(
-                        AuthUI.getInstance(firebaseApp)
-                                .createSignInIntentBuilder()
-                                .setAvailableProviders(providers)
-                                .build(),
-                        Empushy.RC_SIGN_IN)
+                try {
+                    startActivityForResult(
+                            AuthUI.getInstance(firebaseApp!!)
+                                    .createSignInIntentBuilder()
+                                    .setAvailableProviders(providers)
+                                    .build(),
+                            Empushy.RC_SIGN_IN)
+                }catch(e:Exception){
+                    Log.d(TAG, "Exception signing in.")
+                }
             }
         } else {
             btAccept.setOnClickListener({ v -> consentGranted(listenerGranted, usageGranted) })
@@ -69,14 +81,16 @@ class AuthActivity : AppCompatActivity() {
     fun permissionGranted(){
         Toast.makeText(applicationContext, "Permissions Granted.", Toast.LENGTH_LONG).show()
         Empushy.initEmpushyApp(applicationContext)
-        val firebaseApp = FirebaseApp.getInstance("empushy")
+        firebaseApp = FirebaseApp.getInstance("empushy")
         if(applicationContext!=null) {
-            startActivityForResult(
-                    AuthUI.getInstance(firebaseApp)
-                            .createSignInIntentBuilder()
-                            .setAvailableProviders(providers)
-                            .build(),
-                    Empushy.RC_SIGN_IN)
+            try {
+                startActivityForResult(
+                        AuthUI.getInstance(firebaseApp!!)
+                                .createSignInIntentBuilder()
+                                .setAvailableProviders(providers)
+                                .build(),
+                        Empushy.RC_SIGN_IN)
+            }catch(e:Exception){}
         }
     }
 
@@ -105,8 +119,54 @@ class AuthActivity : AppCompatActivity() {
             }
         }
         if(requestCode == Empushy.RC_SIGN_IN && resultCode == Activity.RESULT_OK){
-            EmpushyToggleButton.signInSuccess(this)
-            finish()
+            signInSuccess(this)
         }
+    }
+
+    private fun signInSuccess(context: Context){
+
+        Log.d(TAG, "Sign in success.")
+        // check currentuser not null,
+        // read db for services running
+        // yes, do nothing
+        // no, start notification
+        // regardless, add app package to db
+        try {
+
+            val authInstance = FirebaseAuth.getInstance(firebaseApp!!)
+            val ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
+
+            runningRef = ref.child("users").child(authInstance?.currentUser?.uid
+                    ?: "none").child("running")
+            runningRef?.addListenerForSingleValueEvent(runningReadListener)
+        } catch(e:Exception){
+
+            Log.d(TAG, "Exception starting service")
+        }
+
+
+    }
+
+    var runningReadListener: ValueEventListener = object : ValueEventListener {
+
+        override fun onDataChange(snapshot: DataSnapshot) {
+            Log.d(TAG, "In snapshot")
+            if(snapshot.childrenCount<1){
+                Log.d(TAG, "Creating notification")
+                val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(myService)
+                } else {
+                    startService(myService)
+                }
+            }
+            runningRef?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+                    ?.setValue(true)
+                    ?.addOnCompleteListener {
+                        finish()
+                    }
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
     }
 }

@@ -27,6 +27,7 @@ import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.utils.DataUtils
 import eu.aempathy.empushy.utils.NotificationUtil
+import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
 
@@ -37,6 +38,8 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
+    private var runningRef: DatabaseReference ?= null
+    private var runningListener: ChildEventListener ?= null
 
     private var activeList: ArrayList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
@@ -197,6 +200,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         activeList = ArrayList()
         cachedList = ArrayList()
         // get rules
+        subscribeToRunning()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -221,7 +225,11 @@ class EmpushyNotificationService : NotificationListenerService() {
         // update notification
     }
 
-    override fun onDestroy() {}
+    override fun onDestroy() {
+        try {
+            runningRef?.removeEventListener(runningListener!!)
+        }catch(e:Exception){}
+    }
 
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
@@ -321,6 +329,40 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
+    private fun subscribeToRunning(){
+        val runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
+        runningListener = runningRef?.addChildEventListener(runningReadListener)
+    }
+
+    var runningReadListener: ChildEventListener = object : ChildEventListener {
+
+        override fun onChildRemoved(p0: DataSnapshot) {
+            if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+                val currentUser = authInstance?.currentUser
+                if (currentUser != null) {
+                    val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        nm.deleteNotificationChannel(ANDROID_CHANNEL_ID)
+                    } else {
+                        nm.cancelAll()
+                    }
+                    stopService()
+                }
+            }
+        }
+
+        override fun onChildAdded(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildChanged(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildMoved(p0: DataSnapshot, p1: String?) {}
+
+        override fun onCancelled(databaseError: DatabaseError) {}
+    }
+
+    private fun stopService(){
+        this.stopSelf()
+    }
 
     companion object {
         val ANDROID_CHANNEL_ID = "EmPushy"
