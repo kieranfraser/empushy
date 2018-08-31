@@ -58,11 +58,26 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        if(authInstance!=null && authInstance!!.currentUser != null) {
-            startNotificationService(ArrayList(), false)
+        if(authInstance!=null && authInstance?.currentUser != null) {
+            val checkRunningRef = ref?.child("users")
+                    ?.child(authInstance?.currentUser?.uid?:"none")
+                    ?.child("running")
+                    ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+            checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
         }
-        return Service.START_STICKY
+        return super.onStartCommand(intent, flags, startId)
     }
+
+    var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
+
+        override fun onDataChange(snapshot: DataSnapshot) {
+            if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+                startNotificationService(ArrayList(), false)
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
+    }
+
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
         subscribeToRunning()

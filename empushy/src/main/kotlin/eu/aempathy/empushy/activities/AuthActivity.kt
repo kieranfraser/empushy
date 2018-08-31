@@ -156,12 +156,12 @@ class AuthActivity : AppCompatActivity() {
                 } else {
                     startService(myService)
                 }
+                runningRef?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+                        ?.setValue(true)
+                        ?.addOnCompleteListener {
+                            finish()
+                        }
             }
-            runningRef?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
-                    ?.setValue(true)
-                    ?.addOnCompleteListener {
-                        finish()
-                    }
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}
