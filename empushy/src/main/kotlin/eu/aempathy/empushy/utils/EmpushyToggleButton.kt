@@ -11,15 +11,13 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.Toast
 import android.widget.ToggleButton
-import com.firebase.ui.auth.AuthUI
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import eu.aempathy.empushy.R
+import eu.aempathy.empushy.activities.AuthActivity
 import eu.aempathy.empushy.init.Empushy
-import eu.aempathy.empushy.init.Empushy.RC_SIGN_IN
 import eu.aempathy.empushy.services.EmpushyNotificationService
 import eu.aempathy.empushy.services.EmpushyNotificationService.Companion.ANDROID_CHANNEL_ID
-import java.util.*
 
 /**
  * Created by Kieran on 29/06/2018.
@@ -37,9 +35,6 @@ class EmpushyToggleButton : LinearLayout {
             }
         }
     }
-    // Choose authentication providers
-    var providers: List<AuthUI.IdpConfig> = Arrays.asList(
-            AuthUI.IdpConfig.EmailBuilder().build())
     private var mContext: Context ?= null
 
     constructor(context: Context) : super(context) {
@@ -83,12 +78,8 @@ class EmpushyToggleButton : LinearLayout {
         }
         tb.setOnCheckedChangeListener { compoundButton, isChecked ->
             if (isChecked) {
-                activity.startActivityForResult(
-                        AuthUI.getInstance(firebaseApp)
-                                .createSignInIntentBuilder()
-                                .setAvailableProviders(providers)
-                                .build(),
-                        RC_SIGN_IN)
+                val intent = Intent(context, AuthActivity::class.java)
+                (context as Activity).startActivity(intent)
             } else {
                 if (authInstance.currentUser != null) {
                     authInstance.signOut()

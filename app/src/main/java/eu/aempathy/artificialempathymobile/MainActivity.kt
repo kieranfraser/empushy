@@ -15,10 +15,4 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         Empushy.initialise(this)
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if(requestCode == RC_SIGN_IN && resultCode == Activity.RESULT_OK){
-            EmpushyToggleButton.signInSuccess(applicationContext)
-        }
-    }
 }

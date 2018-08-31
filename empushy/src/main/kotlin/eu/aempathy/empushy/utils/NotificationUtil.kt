@@ -1,5 +1,6 @@
 package eu.aempathy.empushy.utils
 
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -147,5 +148,11 @@ object NotificationUtil {
         }
 
         return false
+    }
+
+    fun notificationServiceRunning(context: Context): Boolean{
+        val notificationActive = false
+
+        return notificationActive
     }
 }

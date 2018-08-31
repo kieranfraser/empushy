@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:design="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:background="@drawable/app_background"
+    design:context="eu.aempathy.empushy.activities.AuthActivity"
+    android:gravity="center">
+
+    <ImageView
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:src="@drawable/heedful_logo_100"/>
+
+    <TextView
+        android:padding="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="To avail of the Empushy service you must enable the following permissions for this app:\n\n Usage Stats\nNotification Listener Service\n\n Any data collected through the EmPushy service is used soley for the purposes of intelligently managing notifications on your behalf.\n\n You control what data is used to achieve this via the EmPushy dashboard. You can turn off this service at any point, or restrict its use. \n\n By clicking the button below, you grant consent for this service. It is optional, and if you do not wish to proceed, press the cancel button. Your app experience will not be effected, however your notifications will not be intelligently managed."/>
+
+    <Button
+        android:id="@+id/bt_empushy_consent_accept"
+        android:layout_margin="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Proceed"
+        android:background="@android:color/holo_green_light"
+        android:textColor="@android:color/white"/>
+
+    <Button
+        android:id="@+id/bt_empushy_consent_cancel"
+        android:layout_margin="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:background="@android:color/holo_red_light"
+        android:textColor="@android:color/white"/>
+</LinearLayout>

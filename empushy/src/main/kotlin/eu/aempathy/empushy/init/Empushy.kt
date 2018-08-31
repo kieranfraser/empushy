@@ -2,13 +2,9 @@ package eu.aempathy.empushy.init
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.os.Build
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
-import eu.aempathy.empushy.services.EmpushyNotificationService
-import eu.aempathy.empushy.utils.Constants
 
 /**
  * Created by Kieran on 07/06/2018.
@@ -34,12 +30,12 @@ object Empushy {
                         .build(),
                 RC_SIGN_IN);*/
 
-        val service = Intent(activity, EmpushyNotificationService::class.java)
+        /*val service = Intent(activity, EmpushyNotificationService::class.java)
         service.action = Constants.ACTION.STARTFOREGROUND_ACTION
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             activity.startForegroundService(service)
         else
-            activity.startService(service)
+            activity.startService(service)*/
     }
 
     fun initEmpushyApp(context: Context) {

@@ -30,6 +30,8 @@ android {
 }
 
 dependencies {
+    final permissionVersion = '3.2.0'
+
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     api 'com.android.support.constraint:constraint-layout:1.1.2'
