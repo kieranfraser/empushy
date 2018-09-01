@@ -1,6 +1,7 @@
 package eu.aempathy.empushy.services
 
 import android.annotation.TargetApi
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -11,6 +12,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.support.v4.app.NotificationCompat
@@ -29,6 +31,7 @@ import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.DataUtils
 import eu.aempathy.empushy.utils.NotificationUtil
+import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
 
@@ -41,11 +44,13 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
+    private var runningRef: DatabaseReference ?= null
+    private var runningListener: ChildEventListener ?= null
 
     private var activeList: ArrayList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
 
-    /*override fun onTaskRemoved(rootIntent: Intent) {
+    override fun onTaskRemoved(rootIntent: Intent) {
         if (authInstance != null && authInstance!!.currentUser != null && runningService) {
             val restartService = Intent(applicationContext,
                     this.javaClass)
@@ -56,7 +61,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             val alarmService = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 10000, restartServicePI)
         }
-    }*/
+    }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.getAction().equals(Constants.ACTION.STARTFOREGROUND_ACTION)) {
@@ -86,7 +91,15 @@ class EmpushyNotificationService : NotificationListenerService() {
                 runningService = true
             }
             else {
-                stopService()
+                if(snapshot.childrenCount < 1 ){
+                    ref?.child("users")?.child(authInstance?.currentUser?.uid
+                            ?: "none")?.child("running")?.setValue(NotificationUtil.simplePackageName(applicationContext,
+                            applicationContext.packageName))
+                    startNotificationService(ArrayList(), false)
+                    runningService = true
+                }
+                else
+                    stopService()
             }
         }
 
@@ -94,6 +107,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
+        subscribeToRunning()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             promote26(items, update)
         } else {
@@ -311,6 +325,9 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        try {
+            runningRef?.removeEventListener(runningListener!!)
+        }catch(e:Exception){}
         Log.d(TAG, "Destroying listener "+applicationContext.packageName)
     }
 
@@ -351,6 +368,33 @@ class EmpushyNotificationService : NotificationListenerService() {
                 }
             }
         }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
+    }
+
+    private fun subscribeToRunning(){
+        val runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
+        runningListener = runningRef?.addChildEventListener(runningReadListener)
+    }
+
+    var runningReadListener: ChildEventListener = object : ChildEventListener {
+
+        override fun onChildRemoved(p0: DataSnapshot) {
+            if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+                val currentUser = authInstance?.currentUser
+                if (currentUser != null) {
+                    Log.d(TAG, "Signing out!")
+                    authInstance?.signOut()
+                    stopService()
+                }
+            }
+        }
+
+        override fun onChildAdded(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildChanged(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildMoved(p0: DataSnapshot, p1: String?) {}
 
         override fun onCancelled(databaseError: DatabaseError) {}
     }
