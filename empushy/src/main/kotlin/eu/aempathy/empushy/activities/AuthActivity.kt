@@ -151,6 +151,7 @@ class AuthActivity : AppCompatActivity() {
 
         override fun onDataChange(snapshot: DataSnapshot) {
             if(snapshot.childrenCount<1){
+                Log.d(TAG, "Less than one.. starting service.")
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(myService)
@@ -163,7 +164,11 @@ class AuthActivity : AppCompatActivity() {
                             finish()
                         }
             }
-            finish()
+            else {
+
+                Log.d(TAG, "NOT starting service, more than one.")
+                finish()
+            }
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}
