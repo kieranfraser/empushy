@@ -68,6 +68,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             checkRunningRef?.keepSynced(true)
             checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
         }
+        stopService()
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -79,7 +80,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                 runningService = true
             }
             else {
-                stopForeground(true)
                 stopService()
             }
         }
@@ -374,7 +374,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                     } else {
                         nm.cancelAll()
                     }
-
                     stopService()
                 }
             }
@@ -390,6 +389,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun stopService(){
+        stopForeground(true)
         this.stopSelf()
     }
 
