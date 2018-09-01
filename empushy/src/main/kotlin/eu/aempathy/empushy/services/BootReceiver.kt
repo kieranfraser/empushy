@@ -7,7 +7,12 @@ import android.os.Build
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.utils.NotificationUtil
 
 /**
  * Created by Kieran on 09/08/2018.
@@ -15,26 +20,45 @@ import eu.aempathy.empushy.init.Empushy
 class BootReceiver: BroadcastReceiver() {
 
     private val TAG = BootReceiver::class.java.simpleName
+    private var context: Context ?= null
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "Heedful Boot.")
+        Log.d(TAG, "EmPushy Boot.")
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
             Empushy.initEmpushyApp(context)
             val firebaseApp = FirebaseApp.getInstance("empushy")
             val authInstance = FirebaseAuth.getInstance(firebaseApp!!)
+            val ref = FirebaseDatabase.getInstance(firebaseApp).reference
             if (authInstance.currentUser != null) {
-                Log.d(TAG, "User logged in - starting notification listener on boot.")
+                val checkRunningRef = ref.child("users")
+                        .child(authInstance?.currentUser?.uid?:"none")
+                        .child("running")
+                        .child(NotificationUtil.simplePackageName(context, context.packageName))
+                checkRunningRef.keepSynced(true)
+                checkRunningRef.addListenerForSingleValueEvent(runningReadListenerSingle)
 
-                val myService = Intent(context, EmpushyNotificationService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(myService)
-                } else {
-                    context.startService(myService)
-                }
             } else {
                 Log.d(TAG, "User logged out - not starting services on boot.")
             }
         }
+    }
+
+    var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
+
+        override fun onDataChange(snapshot: DataSnapshot) {
+            try {
+                if (snapshot.key == NotificationUtil.simplePackageName(context!!, context!!.packageName)) {
+                    val myService = Intent(context, EmpushyNotificationService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context?.startForegroundService(myService)
+                    } else {
+                        context?.startService(myService)
+                    }
+                }
+            }catch(e:Exception){}
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
     }
 
     /*private fun getInstalledApps(context: Context) {

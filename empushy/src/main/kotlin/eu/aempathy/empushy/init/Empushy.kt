@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.database.FirebaseDatabase
 
 /**
  * Created by Kieran on 07/06/2018.
@@ -38,9 +39,10 @@ object Empushy {
             activity.startService(service)*/
     }
 
-    fun initEmpushyApp(context: Context) {
+    fun initEmpushyApp(context: Context): FirebaseApp {
         try {
-            FirebaseApp.getInstance("empushy")
+            val app = FirebaseApp.getInstance("empushy")
+            return app
         } catch (e: IllegalStateException) {
             val options = FirebaseOptions.Builder()
                     .setApplicationId("1:410171203943:android:ee551da2ec169d6a") // Required for Analytics.
@@ -48,7 +50,9 @@ object Empushy {
                     .setDatabaseUrl("https://empushy-9151a.firebaseio.com/")
                     .build()
             // Initialize with secondary app.
-            FirebaseApp.initializeApp(context, options, "empushy")
+            val app = FirebaseApp.initializeApp(context, options, "empushy")
+            FirebaseDatabase.getInstance(app).setPersistenceEnabled(true);
+            return app
         }
 
     }

@@ -100,8 +100,8 @@ class EmpushyToggleButton : LinearLayout {
             }
         }
         else{
-            tb.isEnabled = false
             tb.setOnClickListener({v ->
+                tb.isChecked = false
                 Toast.makeText(context, "You must have an internet connection to toggle this setting.", Toast.LENGTH_LONG).show()})
         }
     }

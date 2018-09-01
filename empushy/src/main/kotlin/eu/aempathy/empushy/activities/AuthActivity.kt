@@ -137,6 +137,7 @@ class AuthActivity : AppCompatActivity() {
 
             runningRef = ref.child("users").child(authInstance?.currentUser?.uid
                     ?: "none").child("running")
+            runningRef?.keepSynced(true)
             runningRef?.addListenerForSingleValueEvent(runningReadListener)
         } catch(e:Exception){
 

@@ -35,6 +35,8 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     private val TAG = EmpushyNotificationService::class.java.simpleName
 
+    private var runningService = false
+
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
@@ -63,6 +65,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     ?.child(authInstance?.currentUser?.uid?:"none")
                     ?.child("running")
                     ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+            checkRunningRef?.keepSynced(true)
             checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
         }
         return super.onStartCommand(intent, flags, startId)
@@ -71,10 +74,14 @@ class EmpushyNotificationService : NotificationListenerService() {
     var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {
-            if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+            if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName)) {
                 startNotificationService(ArrayList(), false)
-            else
+                runningService = true
+            }
+            else {
+                stopForeground(true)
                 stopService()
+            }
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}
@@ -221,7 +228,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (authInstance != null) {
+        if (authInstance != null && runningService) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
                 Log.i(TAG, "Notification Posted! from " + sbn.packageName)
@@ -252,7 +259,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
 
         Log.i(TAG, "Notification Removed. App: " + sbn.packageName)
-        if (authInstance != null) {
+        if (authInstance != null && runningService) {
             val currentUser = authInstance!!.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
                 Log.i(TAG, "Notification Removed")
