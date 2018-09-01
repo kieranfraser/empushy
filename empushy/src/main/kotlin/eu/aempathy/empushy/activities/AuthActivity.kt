@@ -167,6 +167,8 @@ class AuthActivity : AppCompatActivity() {
             else {
 
                 Log.d(TAG, "NOT starting service, more than one.")
+                val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
+                stopService(myService)
                 finish()
             }
         }

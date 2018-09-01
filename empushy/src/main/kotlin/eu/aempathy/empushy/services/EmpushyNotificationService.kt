@@ -46,8 +46,8 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var activeList: ArrayList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
 
-    override fun onTaskRemoved(rootIntent: Intent) {
-        if (authInstance != null && authInstance!!.currentUser != null) {
+    /*override fun onTaskRemoved(rootIntent: Intent) {
+        if (authInstance != null && authInstance!!.currentUser != null && runningService) {
             val restartService = Intent(applicationContext,
                     this.javaClass)
             restartService.`package` = packageName
@@ -55,9 +55,9 @@ class EmpushyNotificationService : NotificationListenerService() {
                     applicationContext, 1, restartService,
                     PendingIntent.FLAG_ONE_SHOT)
             val alarmService = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmService?.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 10000, restartServicePI)
+            alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 10000, restartServicePI)
         }
-    }
+    }*/
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if(authInstance!=null && authInstance?.currentUser != null) {
@@ -253,6 +253,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         try {
             runningRef?.removeEventListener(runningListener!!)
         }catch(e:Exception){}
+        Log.d(TAG, "Stopping "+applicationContext.packageName+" notification service.")
     }
 
 
@@ -367,6 +368,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
                     Log.d(TAG, "Signing out!")
                     authInstance?.signOut()
+                    runningService = false
 
                     val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -390,7 +392,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     private fun stopService(){
         stopForeground(true)
-        this.stopSelf()
+         stopSelf()
     }
 
     companion object {
