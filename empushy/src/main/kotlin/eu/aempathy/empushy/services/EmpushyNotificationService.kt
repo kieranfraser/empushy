@@ -25,6 +25,7 @@ import eu.aempathy.empushy.activities.DetailActivity
 import eu.aempathy.empushy.data.AppSummaryItem
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.DataUtils
 import eu.aempathy.empushy.utils.NotificationUtil
 import eu.aempathy.empushy.utils.StateUtils
@@ -60,15 +61,22 @@ class EmpushyNotificationService : NotificationListenerService() {
     }*/
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        if(authInstance!=null && authInstance?.currentUser != null) {
-            val checkRunningRef = ref?.child("users")
-                    ?.child(authInstance?.currentUser?.uid?:"none")
-                    ?.child("running")
-                    ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
-            checkRunningRef?.keepSynced(true)
-            checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
+        if (intent.getAction().equals(Constants.ACTION.STARTFOREGROUND_ACTION)) {
+            Log.i(TAG, "Received Start Foreground Intent ");
+            if(authInstance!=null && authInstance?.currentUser != null) {
+                val checkRunningRef = ref?.child("users")
+                        ?.child(authInstance?.currentUser?.uid?:"none")
+                        ?.child("running")
+                        ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
+                checkRunningRef?.keepSynced(true)
+                checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
+            }
         }
-        stopService()
+        else if (intent.getAction().equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
+            Log.i(TAG, "Received Stop Foreground Intent")
+            stopForeground(true)
+            stopSelf()
+        }
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -392,7 +400,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     private fun stopService(){
         stopForeground(true)
-         stopSelf()
+        stopSelf()
     }
 
     companion object {

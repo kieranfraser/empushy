@@ -12,6 +12,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.NotificationUtil
 
 /**
@@ -49,6 +50,7 @@ class BootReceiver: BroadcastReceiver() {
             try {
                 if (snapshot.key == NotificationUtil.simplePackageName(context!!, context!!.packageName)) {
                     val myService = Intent(context, EmpushyNotificationService::class.java)
+                    myService.setAction(Constants.ACTION.STARTFOREGROUND_ACTION);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context?.startForegroundService(myService)
                     } else {

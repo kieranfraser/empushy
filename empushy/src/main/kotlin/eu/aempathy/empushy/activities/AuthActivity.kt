@@ -18,6 +18,7 @@ import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.services.EmpushyNotificationService
+import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.NotificationUtil
 import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
@@ -153,6 +154,7 @@ class AuthActivity : AppCompatActivity() {
             if(snapshot.childrenCount<1){
                 Log.d(TAG, "Less than one.. starting service.")
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
+                myService.setAction(Constants.ACTION.STARTFOREGROUND_ACTION);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(myService)
                 } else {
@@ -168,7 +170,8 @@ class AuthActivity : AppCompatActivity() {
 
                 Log.d(TAG, "NOT starting service, more than one.")
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
-                stopService(myService)
+                myService.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
+                startService(myService)
                 finish()
             }
         }

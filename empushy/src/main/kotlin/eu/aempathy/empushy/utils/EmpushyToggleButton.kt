@@ -91,7 +91,9 @@ class EmpushyToggleButton : LinearLayout {
                         } else {
                             nm.cancelAll()
                         }
-                        context.stopService(Intent(context, EmpushyNotificationService::class.java));
+                        val myService = Intent(context, EmpushyNotificationService::class.java)
+                        myService.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
+                        context.startService(myService)
                         authInstance.signOut()
                         // checks if notification service running.. if so, stop
                         Toast.makeText(activity, "Logged out of EmPushy.", Toast.LENGTH_LONG).show()
