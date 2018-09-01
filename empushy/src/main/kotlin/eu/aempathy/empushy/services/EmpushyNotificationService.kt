@@ -74,8 +74,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
         else if (intent.getAction().equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
             Log.i(TAG, "Received Stop Foreground Intent")
-            stopForeground(true)
-            stopSelf()
+            stopService()
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -97,7 +96,6 @@ class EmpushyNotificationService : NotificationListenerService() {
 
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
-        subscribeToRunning()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             promote26(items, update)
         } else {
@@ -362,41 +360,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
-    private fun subscribeToRunning(){
-        val runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
-        runningListener = runningRef?.addChildEventListener(runningReadListener)
-    }
-
-    var runningReadListener: ChildEventListener = object : ChildEventListener {
-
-        override fun onChildRemoved(p0: DataSnapshot) {
-            if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
-                val currentUser = authInstance?.currentUser
-                if (currentUser != null) {
-
-                    Log.d(TAG, "Signing out!")
-                    authInstance?.signOut()
-                    runningService = false
-
-                    val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        nm.deleteNotificationChannel(ANDROID_CHANNEL_ID)
-                    } else {
-                        nm.cancelAll()
-                    }
-                    stopService()
-                }
-            }
-        }
-
-        override fun onChildAdded(p0: DataSnapshot, p1: String?) {}
-
-        override fun onChildChanged(p0: DataSnapshot, p1: String?) {}
-
-        override fun onChildMoved(p0: DataSnapshot, p1: String?) {}
-
-        override fun onCancelled(databaseError: DatabaseError) {}
-    }
 
     private fun stopService(){
         stopForeground(true)

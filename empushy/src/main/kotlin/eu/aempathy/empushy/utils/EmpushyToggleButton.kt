@@ -81,7 +81,8 @@ class EmpushyToggleButton : LinearLayout {
                 } else {
                     if (authInstance.currentUser != null) {
 
-                        ref?.child("users")?.child(authInstance.currentUser?.uid?:"none")?.child("running")?.removeValue()
+                        ref?.child("users")?.child(authInstance.currentUser?.uid?:"none")?.child("running")
+                                ?.child(NotificationUtil.simplePackageName(context, context.packageName))?.removeValue()
                         // delete all apps running service
                         // notificationlistenerservice running should pick up and log out
                         // removes running notification (this code)
