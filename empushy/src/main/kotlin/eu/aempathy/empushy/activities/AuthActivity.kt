@@ -171,6 +171,7 @@ class AuthActivity : AppCompatActivity() {
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
                 myService.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
                 startService(myService)
+                stopService(myService)
                 finish()
             }
         }

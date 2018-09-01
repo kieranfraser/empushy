@@ -1,7 +1,9 @@
 package eu.aempathy.empushy.services
 
 import android.annotation.TargetApi
-import android.app.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -9,7 +11,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
-import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.support.v4.app.NotificationCompat
@@ -28,7 +29,6 @@ import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.DataUtils
 import eu.aempathy.empushy.utils.NotificationUtil
-import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
 
@@ -41,8 +41,6 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
-    private var runningRef: DatabaseReference ?= null
-    private var runningListener: ChildEventListener ?= null
 
     private var activeList: ArrayList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
@@ -70,10 +68,11 @@ class EmpushyNotificationService : NotificationListenerService() {
                         ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
                 checkRunningRef?.keepSynced(true)
                 checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
-            }
+        }
         }
         else if (intent.getAction().equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
             Log.i(TAG, "Received Stop Foreground Intent")
+            runningService = false
             stopService()
         }
         return super.onStartCommand(intent, flags, startId)
@@ -93,7 +92,6 @@ class EmpushyNotificationService : NotificationListenerService() {
 
         override fun onCancelled(databaseError: DatabaseError) {}
     }
-
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -234,10 +232,10 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        Log.i(TAG, "Notification Posted! from " + sbn.packageName)
         if (authInstance != null && runningService) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
-                Log.i(TAG, "Notification Posted! from " + sbn.packageName)
                 val notification = EmpushyNotification()
                 NotificationUtil.extractNotificationPostedValue(notification, sbn, applicationContext)
                 val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName)
@@ -254,14 +252,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
         // update notification
     }
-
-    override fun onDestroy() {
-        try {
-            runningRef?.removeEventListener(runningListener!!)
-        }catch(e:Exception){}
-        Log.d(TAG, "Stopping "+applicationContext.packageName+" notification service.")
-    }
-
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
 
@@ -319,6 +309,11 @@ class EmpushyNotificationService : NotificationListenerService() {
         notificationsRef?.orderByKey()?.addListenerForSingleValueEvent(consolidateReadListener)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "Destroying listener "+applicationContext.packageName)
+    }
+
     var consolidateReadListener: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {
@@ -360,8 +355,8 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
-
     private fun stopService(){
+        runningService = false
         stopForeground(true)
         stopSelf()
     }
