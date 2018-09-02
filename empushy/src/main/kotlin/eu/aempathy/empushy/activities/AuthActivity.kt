@@ -119,11 +119,11 @@ class AuthActivity : AppCompatActivity() {
             }
         }
         if(requestCode == Empushy.RC_SIGN_IN && resultCode == Activity.RESULT_OK){
-            signInSuccess(this)
+            signInSuccess()
         }
     }
 
-    private fun signInSuccess(context: Context){
+    fun signInSuccess(){
 
         Log.d(TAG, "Sign in success.")
         // check currentuser not null,

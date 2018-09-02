@@ -25,6 +25,7 @@ class BootReceiver: BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "EmPushy Boot.")
+        this.context = context
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
             Empushy.initEmpushyApp(context)
             val firebaseApp = FirebaseApp.getInstance("empushy")
@@ -47,8 +48,10 @@ class BootReceiver: BroadcastReceiver() {
     var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {
+            Log.d(TAG, "Checking EmPushy to run.")
             try {
                 if (snapshot.key == NotificationUtil.simplePackageName(context!!, context!!.packageName)) {
+                    Log.d(TAG, "Starting EmPushy via "+snapshot.key)
                     val myService = Intent(context, EmpushyNotificationService::class.java)
                     myService.setAction(Constants.ACTION.STARTFOREGROUND_ACTION);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -57,7 +60,7 @@ class BootReceiver: BroadcastReceiver() {
                         context?.startService(myService)
                     }
                 }
-            }catch(e:Exception){}
+            }catch(e:Exception){Log.d(TAG, "Exception checking EmPushy running in boot.")}
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}

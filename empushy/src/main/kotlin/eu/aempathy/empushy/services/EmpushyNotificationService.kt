@@ -73,7 +73,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                         ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
                 checkRunningRef?.keepSynced(true)
                 checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
-        }
+            }
         }
         else if (intent.getAction().equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
             Log.i(TAG, "Received Stop Foreground Intent")
@@ -86,20 +86,13 @@ class EmpushyNotificationService : NotificationListenerService() {
     var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {
-            if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName)) {
+            if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName)
+                && snapshot.value != null) {
                 startNotificationService(ArrayList(), false)
                 runningService = true
             }
             else {
-                if(snapshot.childrenCount < 1 ){
-                    ref?.child("users")?.child(authInstance?.currentUser?.uid
-                            ?: "none")?.child("running")?.setValue(NotificationUtil.simplePackageName(applicationContext,
-                            applicationContext.packageName))
-                    startNotificationService(ArrayList(), false)
-                    runningService = true
-                }
-                else
-                    stopService()
+                stopService()
             }
         }
 
@@ -107,7 +100,6 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
-        subscribeToRunning()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             promote26(items, update)
         } else {
@@ -149,6 +141,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     .setContentTitle("EmPushy")
                     .setContentText("EmPushy legacy running.")
                     .setOnlyAlertOnce(true)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, DetailActivity::class.java), 0))
                     .setCustomContentView(collapsedView)
@@ -205,6 +198,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         val builder = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setColor(ContextCompat.getColor(applicationContext, R.color.colorPrimary))
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentTitle("EmPushy Title")
                 .setContentText("EmPushy descript")
                 .setOnlyAlertOnce(true)
@@ -242,6 +236,8 @@ class EmpushyNotificationService : NotificationListenerService() {
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
         activeList = ArrayList()
         cachedList = ArrayList()
+
+        subscribeToRunning()
         // get rules
     }
 
@@ -262,6 +258,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 ref!!.child("notifications").child(currentUser.uid).child("mobile").child(sbn.postTime.toString()).setValue(notification)
                 // update notification
                 updateEmpushyNotification()
+                cancelNotification(sbn.key)
             }
         }
         // update notification
@@ -270,7 +267,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
 
         Log.i(TAG, "Notification Removed. App: " + sbn.packageName)
-        if (authInstance != null && runningService) {
+        /*if (authInstance != null && !runningService) {
             val currentUser = authInstance!!.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
                 Log.i(TAG, "Notification Removed")
@@ -278,8 +275,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName)
                 if (activeNotification != null) {
                     NotificationUtil.extractNotificationRemovedValue(activeNotification, sbn, applicationContext)
-                    /*if(placeCats.isNotEmpty())
-                    activeNotification.placeCategories = placeCats.toList() as ArrayList<Int>*/
+                    *//*if(placeCats.isNotEmpty())
+                    activeNotification.placeCategories = placeCats.toList() as ArrayList<Int>*//*
                     ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                     if (activeList != null)
                         activeList!!.remove(activeNotification)
@@ -287,8 +284,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                     val cachedNotification = NotificationUtil.isInList(cachedList, sbn.id, sbn.packageName)
                     if (cachedNotification != null) {
                         NotificationUtil.extractNotificationRemovedValue(cachedNotification, sbn, applicationContext)
-                        /*if(placeCats.isNotEmpty())
-                        cachedNotification.placeCategories = placeCats.toList() as ArrayList<Int>*/
+                        *//*if(placeCats.isNotEmpty())
+                        cachedNotification.placeCategories = placeCats.toList() as ArrayList<Int>*//*
                         ref!!.child("cached/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
                                 .setValue(cachedNotification)
                         if (cachedList != null)
@@ -306,7 +303,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 // update notification
                 updateEmpushyNotification()
             }
-        }
+        }*/
     }
 
     private fun updateEmpushyNotification(){

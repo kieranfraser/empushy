@@ -1,11 +1,11 @@
 package eu.aempathy.empushy.utils
 
 import android.app.Activity
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.widget.LinearLayout
@@ -13,8 +13,7 @@ import android.widget.Toast
 import android.widget.ToggleButton
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.activities.AuthActivity
 import eu.aempathy.empushy.init.Empushy
@@ -28,6 +27,7 @@ class EmpushyToggleButton : LinearLayout {
 
     private val TAG = EmpushyToggleButton::class.java.simpleName
     private var ref:DatabaseReference ?= null
+    private var runningRef: DatabaseReference ?= null
 
     private var mContext: Context ?= null
 
@@ -73,6 +73,14 @@ class EmpushyToggleButton : LinearLayout {
 
             if (authInstance.currentUser != null) {
                 tb.isChecked = true
+                Log.d(TAG, "Ensure service started.")
+                val myService = Intent(context, EmpushyNotificationService::class.java)
+                myService.setAction(Constants.ACTION.STARTFOREGROUND_ACTION);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(myService)
+                } else {
+                    context.startService(myService)
+                }
             }
             tb.setOnCheckedChangeListener { compoundButton, isChecked ->
                 if (isChecked) {
