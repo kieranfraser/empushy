@@ -6,7 +6,7 @@ group='com.github.kieranfraser'
 android {
     compileSdkVersion 26
     defaultConfig {
-        minSdkVersion 22
+        minSdkVersion 23
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -39,9 +39,10 @@ dependencies {
     testImplementation 'com.android.support.test:runner:1.0.2'
     testImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     api "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    api 'com.google.firebase:firebase-database:16.0.1'
     api 'com.firebaseui:firebase-ui-auth:4.1.0'
+    api 'com.firebaseui:firebase-ui-database:4.1.0'
     api 'com.android.support:appcompat-v7:26.1.0'
     api 'com.google.code.gson:gson:2.8.2'
+    api 'com.github.PhilJay:MPAndroidChart:v3.0.3'
 }
 apply plugin: 'kotlin-android-extensions'

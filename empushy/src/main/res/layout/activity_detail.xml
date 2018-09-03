@@ -126,7 +126,7 @@
             android:layout_height="2dp"
             android:background="@color/empushyPrimary"/>
 
-        <GridView
+        <android.support.v7.widget.RecyclerView
             android:id="@+id/gv_home"
             android:layout_width="fill_parent"
             android:layout_height="0dp"
@@ -134,19 +134,19 @@
             android:numColumns="2"
             android:gravity="center"
             android:stretchMode="columnWidth">
-        </GridView>
+        </android.support.v7.widget.RecyclerView>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="0.5">
 
-            <!--<com.github.mikephil.charting.charts.LineChart
+            <com.github.mikephil.charting.charts.LineChart
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="5dp"
                 android:id="@+id/lc_home">
-            </com.github.mikephil.charting.charts.LineChart>-->
+            </com.github.mikephil.charting.charts.LineChart>
 
         </LinearLayout>
 

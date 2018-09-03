@@ -44,8 +44,15 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
+
     private var runningRef: DatabaseReference ?= null
     private var runningListener: ChildEventListener ?= null
+
+    private var removalActiveRef: DatabaseReference ?= null
+    private var removalActiveListener: ChildEventListener ?= null
+
+    private var removalCacheRef: DatabaseReference ?= null
+    private var removalCacheListener: ChildEventListener ?= null
 
     private var activeList: ArrayList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
@@ -64,7 +71,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        if (intent.getAction().equals(Constants.ACTION.STARTFOREGROUND_ACTION)) {
+        if (intent.action.equals(Constants.ACTION.STARTFOREGROUND_ACTION)) {
             Log.i(TAG, "Received Start Foreground Intent ");
             if(authInstance!=null && authInstance?.currentUser != null) {
                 val checkRunningRef = ref?.child("users")
@@ -75,12 +82,54 @@ class EmpushyNotificationService : NotificationListenerService() {
                 checkRunningRef?.addListenerForSingleValueEvent(runningReadListenerSingle)
             }
         }
-        else if (intent.getAction().equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
+        else if (intent.action.equals( Constants.ACTION.STOPFOREGROUND_ACTION)) {
             Log.i(TAG, "Received Stop Foreground Intent")
             runningService = false
             stopService()
         }
+        else if(intent.action.equals( Constants.ACTION.REMOVAL_ACTION)){
+            val appItem = intent.getSerializableExtra("notification") as AppSummaryItem
+            notificationRemoval(appItem)
+        }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun notificationRemoval(appItem: AppSummaryItem?){
+        if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+            val currentUser = authInstance?.currentUser
+            if (currentUser != null) {
+                Log.i(TAG, "Notification Removed")
+
+                val allNotifications = ArrayList<EmpushyNotification>()
+                allNotifications.addAll(appItem?.active?: emptyList())
+                allNotifications.addAll(appItem?.hidden?: emptyList())
+                for(n in allNotifications) {
+
+                    val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId
+                            ?: 0, n?.app ?: "")
+                    if (activeNotification != null) {
+                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
+                        if (activeList != null)
+                            activeList!!.remove(activeNotification)
+                    } else {
+                        val cachedNotification = NotificationUtil.isInList(cachedList, n?.notifyId
+                                ?: 0, n?.app ?: "")
+                        if (cachedNotification != null) {
+                            NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
+
+                            ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
+                                    .setValue(cachedNotification)
+                            if (cachedList != null)
+                                cachedList!!.remove(cachedNotification)
+                            return
+                        }
+                    }
+                }
+                //consolidateActiveList(currentUser.uid)
+                updateEmpushyNotification()
+            }
+        }
     }
 
     var runningReadListenerSingle: ValueEventListener = object : ValueEventListener {
@@ -88,8 +137,11 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onDataChange(snapshot: DataSnapshot) {
             if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName)
                 && snapshot.value != null) {
+
                 startNotificationService(ArrayList(), false)
+                //subscribeToRemovals()
                 runningService = true
+                consolidateActiveList(authInstance?.currentUser?.uid?:"none")
             }
             else {
                 stopService()
@@ -100,6 +152,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             promote26(items, update)
         } else {
@@ -137,8 +190,17 @@ class EmpushyNotificationService : NotificationListenerService() {
                 } catch (e: Exception) {}
             }
 
+            val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
+
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+            val intent = PendingIntent.getActivity(applicationContext, 0,
+                    notificationIntent, 0)
+
             val builder = android.support.v4.app.NotificationCompat.Builder(this)
                     .setContentTitle("EmPushy")
+                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                    .setContentIntent(intent)
                     .setContentText("EmPushy legacy running.")
                     .setOnlyAlertOnce(true)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -148,7 +210,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     .setCustomBigContentView(expandedView)
                     .setStyle(android.support.v4.app.NotificationCompat.DecoratedCustomViewStyle())
 
-            startForeground(1, builder.build())
+            (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(1, builder.build())
         }
     }
 
@@ -250,13 +312,14 @@ class EmpushyNotificationService : NotificationListenerService() {
                 NotificationUtil.extractNotificationPostedValue(notification, sbn, applicationContext)
                 val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName)
                 if (activeNotification != null) {
-                    activeList!!.remove(activeNotification)
-                    ref!!.child("notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).removeValue()
+                    activeList?.remove(activeNotification)
+                    ref?.child("notifications")?.child(currentUser.uid)?.child("mobile")?.child(activeNotification.id?:"none")?.removeValue()
                 }
                 if (activeList != null)
-                    activeList!!.add(notification)
+                    activeList?.add(notification)
                 ref!!.child("notifications").child(currentUser.uid).child("mobile").child(sbn.postTime.toString()).setValue(notification)
                 // update notification
+                Log.d(TAG, activeList.toString())
                 updateEmpushyNotification()
                 cancelNotification(sbn.key)
             }
@@ -309,14 +372,13 @@ class EmpushyNotificationService : NotificationListenerService() {
     private fun updateEmpushyNotification(){
         Log.d(TAG, "Updating notification")
         val appItems = DataUtils.notificationAnalysis(activeList?: ArrayList())
-
-        Log.d(TAG, "Apps: "+appItems.size)
         startNotificationService(appItems, true)
     }
 
     private fun consolidateActiveList(userId: String){
         // get notifications from server
         val notificationsRef = ref?.child("notifications")?.child(userId)?.child("mobile")
+        notificationsRef?.keepSynced(true)
         notificationsRef?.orderByKey()?.addListenerForSingleValueEvent(consolidateReadListener)
     }
 
@@ -324,8 +386,10 @@ class EmpushyNotificationService : NotificationListenerService() {
         super.onDestroy()
         try {
             runningRef?.removeEventListener(runningListener!!)
+            removalActiveRef?.removeEventListener(removalActiveListener!!)
+            removalCacheRef?.removeEventListener(removalCacheListener!!)
         }catch(e:Exception){}
-        Log.d(TAG, "Destroying listener "+applicationContext.packageName)
+        Log.d(TAG, "Destroying listeners "+applicationContext.packageName)
     }
 
     var consolidateReadListener: ValueEventListener = object : ValueEventListener {
@@ -362,6 +426,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                     }
                     for (notification in toRemove)
                         activeList?.remove(notification)
+
+                    updateEmpushyNotification()
                 }
             }
         }
@@ -370,8 +436,67 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     private fun subscribeToRunning(){
-        val runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
+        runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
         runningListener = runningRef?.addChildEventListener(runningReadListener)
+    }
+
+    /**
+     * change to offline removal via Intent.. so notification syncs when offline.
+     */
+    private fun subscribeToRemovals(){
+        Log.d(TAG, "Subbed to removals")
+        removalActiveRef = ref?.child("notifications")?.child(authInstance?.currentUser?.uid?:"none")?.child("mobile")
+        removalActiveListener = removalActiveRef?.addChildEventListener(removalListener)
+        removalCacheRef = ref?.child("cached/notifications")?.child(authInstance?.currentUser?.uid?:"none")?.child("mobile")
+        removalCacheListener = removalCacheRef?.addChildEventListener(removalListener)
+    }
+
+    var removalListener: ChildEventListener = object : ChildEventListener {
+
+        override fun onChildRemoved(snapshot: DataSnapshot) {
+            if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+                val currentUser = authInstance?.currentUser
+                if (currentUser != null) {
+                    Log.i(TAG, "Notification Removed")
+                    Log.d(TAG, snapshot.toString())
+                    val n = snapshot.getValue(EmpushyNotification::class.java)
+
+                    val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId?:0, n?.app?:"")
+                    if (activeNotification != null) {
+                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
+                        if (activeList != null)
+                            activeList!!.remove(activeNotification)
+                    } else {
+                        val cachedNotification = NotificationUtil.isInList(cachedList, n?.notifyId?:0, n?.app?:"")
+                        if (cachedNotification != null) {
+                            NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
+
+                            ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
+                                            .setValue(cachedNotification)
+                            if (cachedList != null)
+                                cachedList!!.remove(cachedNotification)
+                            return
+                        }
+                        val notification = n
+                        NotificationUtil.extractNotificationRemovedValue(notification?: EmpushyNotification(), applicationContext)
+                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(notification?.id!!).setValue(notification)
+                    }
+
+                    consolidateActiveList(currentUser.uid)
+                    // update notification
+                    updateEmpushyNotification()
+                }
+            }
+        }
+
+        override fun onChildAdded(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildChanged(p0: DataSnapshot, p1: String?) {}
+
+        override fun onChildMoved(p0: DataSnapshot, p1: String?) {}
+
+        override fun onCancelled(databaseError: DatabaseError) {}
     }
 
     var runningReadListener: ChildEventListener = object : ChildEventListener {

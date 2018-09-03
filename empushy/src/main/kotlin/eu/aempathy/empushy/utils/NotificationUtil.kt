@@ -118,7 +118,7 @@ object NotificationUtil {
         return concatenatedString
     }
 
-    fun extractNotificationRemovedValue(notification: EmpushyNotification, sbn: StatusBarNotification, context: Context) {
+    fun extractNotificationRemovedValue(notification: EmpushyNotification, context: Context) {
         notification.removedTime = System.currentTimeMillis()
         notification.clicked = appOpenedSincePosting(context, notification.app, notification.time!!)
     }
@@ -154,5 +154,26 @@ object NotificationUtil {
         val notificationActive = false
 
         return notificationActive
+    }
+
+    fun extractUsefulText(n: EmpushyNotification): String {
+        var text = ""
+
+        if(!n.ticker.isNullOrEmpty() && !text.contains(n.ticker?:""))
+            text += "..."+n.ticker
+        if(!n.subText.isNullOrEmpty() && !text.contains(n.subText?:""))
+            text += "..."+n.subText
+        if(!n.summaryText.isNullOrEmpty() && !text.contains(n.summaryText?:""))
+            text += "..."+n.summaryText
+        if(!n.infoText.isNullOrEmpty() && !text.contains(n.infoText?:""))
+            text += "..."+n.infoText
+        if(!n.extraBigText.isNullOrEmpty() && !text.contains(n.extraBigText?:""))
+            text += "..."+n.extraBigText
+        if(!n.extraText.isNullOrEmpty() && !text.contains(n.extraText?:""))
+            text += "..."+n.extraText
+        if(!n.extraTextLines.isNullOrEmpty() && !text.contains(n.extraTextLines?:""))
+            text += "..."+n.extraTextLines
+
+        return text
     }
 }

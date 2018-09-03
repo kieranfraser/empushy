@@ -4,6 +4,7 @@ class Constants {
 
     interface ACTION {
         companion object {
+            val REMOVAL_ACTION = "com.aempathy.empushy.listenerservice.action.removal"
             val MAIN_ACTION = "eu.artificialempathy.cempy.foregroundservice.action.main"
             val INIT_ACTION = "eu.artificialempathy.cempy.foregroundservice.action.init"
             val PREV_ACTION = "eu.artificialempathy.cempy.foregroundservice.action.prev"

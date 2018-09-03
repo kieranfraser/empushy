@@ -42,6 +42,7 @@ class AuthActivity : AppCompatActivity() {
         // on consent given
         val btAccept = findViewById(R.id.bt_empushy_consent_accept) as Button
         val btCancel = findViewById(R.id.bt_empushy_consent_cancel) as Button
+        btCancel.setOnClickListener({ v -> finish() })
 
         val listenerGranted = StateUtils.isNotificationListenerGranted(applicationContext?.contentResolver, "com.aempathy.heedful")
         val usageGranted = StateUtils.isUsagePermissionGranted(applicationContext)
@@ -49,6 +50,15 @@ class AuthActivity : AppCompatActivity() {
             Empushy.initEmpushyApp(applicationContext)
             firebaseApp = FirebaseApp.getInstance("empushy")
             if (applicationContext != null) {
+                btAccept.text = "Login or Sign up"
+                btAccept.setOnClickListener({
+                    startActivityForResult(
+                            AuthUI.getInstance(firebaseApp!!)
+                                    .createSignInIntentBuilder()
+                                    .setAvailableProviders(providers)
+                                    .build(),
+                            Empushy.RC_SIGN_IN)
+                })
                 try {
                     startActivityForResult(
                             AuthUI.getInstance(firebaseApp!!)
@@ -62,7 +72,6 @@ class AuthActivity : AppCompatActivity() {
             }
         } else {
             btAccept.setOnClickListener({ v -> consentGranted(listenerGranted, usageGranted) })
-            btCancel.setOnClickListener({ v -> finish() })
         }
     }
 
