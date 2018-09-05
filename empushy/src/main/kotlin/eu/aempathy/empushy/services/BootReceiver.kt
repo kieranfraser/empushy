@@ -16,7 +16,10 @@ import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.NotificationUtil
 
 /**
- * Created by Kieran on 09/08/2018.
+ * Service called when device is booted up.
+ * - Initialises the EmPushy library.
+ * - Checks user EmPushy auth status.
+ * - If logged-in and app is designated to run notification, starts EmpushyNotificationService
  */
 class BootReceiver: BroadcastReceiver() {
 
@@ -27,7 +30,7 @@ class BootReceiver: BroadcastReceiver() {
         Log.d(TAG, "EmPushy Boot.")
         this.context = context
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
-            Empushy.initEmpushyApp(context)
+            Empushy.initialise(context)
             val firebaseApp = FirebaseApp.getInstance("empushy")
             val authInstance = FirebaseAuth.getInstance(firebaseApp!!)
             val ref = FirebaseDatabase.getInstance(firebaseApp).reference

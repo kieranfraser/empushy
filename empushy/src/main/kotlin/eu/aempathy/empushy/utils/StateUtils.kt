@@ -16,7 +16,7 @@ import android.net.NetworkInfo
 
 
 /**
- * Created by Kieran on 05/04/2018.
+ * Various functions describing the user/device/app state.
  */
 class StateUtils {
 

@@ -35,9 +35,19 @@ import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
 
+/**
+ * Notification Listener Service
+ * - implemented as a foreground service with paired EmPushy notification in the status bar (which shows
+ * the current number of notifications which need attention and the current number of notifications cached for
+ * later consumption).
+ * - listens to the status bar for incoming notifications
+ * - logs incoming notifications, updates EmPushy foreground notification and removes notification from status bar.
+ */
 class EmpushyNotificationService : NotificationListenerService() {
 
     private val TAG = EmpushyNotificationService::class.java.simpleName
+
+    val ANDROID_CHANNEL_ID = "EmPushy"
 
     private var runningService = false
 
@@ -294,7 +304,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onCreate() {
-        Empushy.initEmpushyApp(applicationContext)
+        Empushy.initialise(applicationContext)
         firebaseApp = FirebaseApp.getInstance("empushy")
         authInstance = FirebaseAuth.getInstance(firebaseApp!!)
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
@@ -527,9 +537,5 @@ class EmpushyNotificationService : NotificationListenerService() {
         runningService = false
         stopForeground(true)
         stopSelf()
-    }
-
-    companion object {
-        val ANDROID_CHANNEL_ID = "EmPushy"
     }
 }

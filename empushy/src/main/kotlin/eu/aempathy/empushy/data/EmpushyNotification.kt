@@ -4,7 +4,10 @@ import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
 /**
- * Created by Kieran on 19/03/2018.
+ * EmpushyNotification
+ * - created using StatusBarNotification posted to the NotificationListenerService
+ * - useful information extracted
+ * - additional information inferred e.g. clicked, placeCategories etc.
  */
 data class EmpushyNotification(
 

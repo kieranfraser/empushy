@@ -4,9 +4,8 @@ import eu.aempathy.empushy.data.AppSummaryItem
 import eu.aempathy.empushy.data.EmpushyNotification
 import java.util.*
 
-
 /**
- * Created by Kieran on 30/03/2018.
+ * Various data manipulation/analysis functions.
  */
 class DataUtils {
 

@@ -10,7 +10,7 @@ import android.support.v7.widget.helper.ItemTouchHelper
 import eu.aempathy.empushy.R
 
 /**
- * Created by Kieran on 08/04/2018.
+ * Used in the Detail activity to delete app notifications (hidden and active) on swipe.
  */
 abstract class SwipeToDeleteCallback(context: Context) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
 

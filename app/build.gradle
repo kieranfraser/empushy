@@ -1,3 +1,16 @@
+/*
+* EmPushy example module level build.gradle
+*
+* 1. Minimum SDK version is 23. Necessary for custom notification views
+* and other feature use. Apps <23 not supported.
+*
+* 2. Import project as dependency.
+*   a. Can add the library as an external project and use:
+*       api project(':empushy')
+*   b. Import using JitPack package repo (https://jitpack.io/#kieranfraser/empushy):
+*       implementation 'com.github.kieranfraser:empushy:968d2f378a'
+* */
+
 apply plugin: 'com.android.application'
 
 apply plugin: 'kotlin-android'

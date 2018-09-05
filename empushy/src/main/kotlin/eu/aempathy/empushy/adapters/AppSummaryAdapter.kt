@@ -34,16 +34,16 @@ class AppSummaryAdapter(context: Context, var summaryItems: ArrayList<AppSummary
 
         val inflator = context!!.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val itemView = inflator.inflate(R.layout.app_summary_item, null)
-        itemView.tv_app_summary_item_app.text = summaryItems[position].appName
-        itemView.tv_app_summary_item_now.text = (summaryItems[position].active?.size.toString() + " for now");
-        itemView.tv_app_summary_item_later.text = (summaryItems[position].hidden?.size.toString() + " for later");
+        itemView.tv_app_summary_item_app.text = item.appName
+        itemView.tv_app_summary_item_now.text = (item.active?.size.toString() + " for now");
+        itemView.tv_app_summary_item_later.text = (item.hidden?.size.toString() + " for later");
         try {
-            val icon = context?.packageManager?.getApplicationIcon(summaryItems[position].app?.trim())
+            val icon = context?.packageManager?.getApplicationIcon(item.app?.trim())
             itemView.iv_app_summary_item_icon!!.setImageDrawable(icon)
         } catch (e: Exception) {
             Log.d("AppSummaryAdapter", e.toString())
         }
-        itemView.setOnLongClickListener{ clickListener(summaryItems[position]) }
+        itemView.setOnLongClickListener{ clickListener(item) }
 
         /*itemView.setOnLongClickListener(View.OnLongClickListener {
 
@@ -65,7 +65,7 @@ class AppSummaryAdapter(context: Context, var summaryItems: ArrayList<AppSummary
         itemView.setOnClickListener(object : View.OnClickListener {
             override fun onClick(view: View) {
 
-                val dialog = AppSummaryDialog.newInstance(summaryItems[position])
+                val dialog = AppSummaryDialog.newInstance(item)
                 dialog.show((context as Activity).fragmentManager, "")
             }
         })

@@ -12,10 +12,9 @@ import android.widget.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.adapters.NotificationSummaryAdapter
 import eu.aempathy.empushy.data.AppSummaryItem
-import eu.aempathy.empushy.data.EmpushyNotification
 
 /**
- * Created by Kieran on 12/04/2018.
+ * Shows detail of a selected App Summary Item.
  */
 class AppSummaryDialog: DialogFragment(){
 
@@ -64,17 +63,17 @@ class AppSummaryDialog: DialogFragment(){
         recyclerView.hasFixedSize()
 
         if(rbNow.isChecked)
-            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(), { notification : EmpushyNotification -> notificationItemClicked() })
+            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(), { notificationItemClicked() })
         else
-            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(), { notification : EmpushyNotification -> notificationItemClicked() })
+            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(), { notificationItemClicked() })
         // Create the AlertDialog object and return it
         radioGroup.setOnCheckedChangeListener(object: RadioGroup.OnCheckedChangeListener{
             override fun onCheckedChanged(p0: RadioGroup?, p1: Int) {
                 Log.d(TAG, "Changed checked")
                 if(rbNow.isChecked)
-                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(), { notification : EmpushyNotification -> notificationItemClicked() })
+                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(), { notificationItemClicked() })
                 else
-                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(), { notification : EmpushyNotification -> notificationItemClicked() })
+                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(), { notificationItemClicked() })
             }
         })
 

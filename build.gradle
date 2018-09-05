@@ -1,4 +1,11 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+/*
+* EmPushy example project level build.gradle
+*
+* 1. Must add to allprojects/repositories:
+ *      maven { url 'https://jitpack.io' }
+ *   ..for importing EmPushy library and as lib depends on
+ *   MPAndroidChart.
+* */
 
 buildscript {
     ext.kotlin_version = '1.2.31'

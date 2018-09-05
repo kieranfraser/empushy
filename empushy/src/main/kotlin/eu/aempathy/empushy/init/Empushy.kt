@@ -1,6 +1,5 @@
 package eu.aempathy.empushy.init
 
-import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.google.firebase.FirebaseApp
@@ -14,33 +13,17 @@ import com.google.firebase.database.FirebaseDatabase
 
 object Empushy {
 
-    private val TAG = Empushy::class.java.simpleName
-
+    val EMPUSHY_TAG = "EMPUSHY_LIB: "
+    private val TAG = EMPUSHY_TAG + Empushy::class.java.simpleName
     val RC_SIGN_IN = 21192
 
-    fun initialise(activity: Activity) {
-        Log.d(TAG, "Initialised library")
-        /*Intent mServiceIntent = new Intent(activity, CempyNotificationService.class);
-        activity.startService(mServiceIntent);*/
-        initEmpushyApp(activity)
-        /*FirebaseApp firebaseApp = FirebaseApp.getInstance("empushy");
-        // Create and launch sign-in intent
-        activity.startActivityForResult(
-                AuthUI.getInstance(firebaseApp)
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(providers)
-                        .build(),
-                RC_SIGN_IN);*/
-
-        /*val service = Intent(activity, EmpushyNotificationService::class.java)
-        service.action = Constants.ACTION.STARTFOREGROUND_ACTION
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            activity.startForegroundService(service)
-        else
-            activity.startService(service)*/
-    }
-
-    fun initEmpushyApp(context: Context): FirebaseApp {
+    /**
+     * Initialise the EmPushy library
+     * - setup Firebase app instances using secondary (EmPushy) app
+     * so no interference with other FB instances.
+     */
+    fun initialise(context: Context): FirebaseApp {
+        Log.d(TAG, "Initialising EmPushy")
         try {
             val app = FirebaseApp.getInstance("empushy")
             return app
@@ -58,9 +41,12 @@ object Empushy {
 
     }
 
+    /**
+     * Returns user current EmPushy auth state.
+     */
     fun loggedIn(context: Context): Boolean{
         try {
-            val app = initEmpushyApp(context)
+            val app = initialise(context)
             if( FirebaseAuth.getInstance(app).currentUser != null)
                 return true
         } catch(e: Exception){}

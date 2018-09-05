@@ -11,7 +11,6 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.Toast
 import android.widget.ToggleButton
-import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -19,10 +18,15 @@ import eu.aempathy.empushy.R
 import eu.aempathy.empushy.activities.AuthActivity
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.services.EmpushyNotificationService
-import kotlinx.android.synthetic.main.empushy_toggle_button.view.*
 
 /**
- * Created by Kieran on 29/06/2018.
+ * EmPushy Toggle Button
+ * - executes functionality of XML Toggle Button
+ * which is to be added to an apps settings screen to enable users to avail
+ * of EmPushy functionality by logging-in or signing-up to the service.
+ *
+ * Note: Must also override activity onResume() to keep user EmPushy auth
+ * state synced.
  */
 
 class EmpushyToggleButton : LinearLayout {
@@ -40,8 +44,8 @@ class EmpushyToggleButton : LinearLayout {
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         val a = context.obtainStyledAttributes(attrs,
                 R.styleable.EmpushyToggleButton, 0, 0)
-        val titleText = a.getString(R.styleable.EmpushyToggleButton_titleText)
-        /*val valueColor = a.getColor(R.styleable.EmpushyToggleButton_valueColor,
+        /*val titleText = a.getString(R.styleable.EmpushyToggleButton_titleText)
+        *//*val valueColor = a.getColor(R.styleable.EmpushyToggleButton_valueColor,
                 android.R.color.holo_blue_light)*/
         a.recycle()
 
@@ -65,9 +69,7 @@ class EmpushyToggleButton : LinearLayout {
 
         if(StateUtils.isNetworkAvailable(context)) {
 
-            Empushy.initEmpushyApp(activity)
-
-            val firebaseApp = FirebaseApp.getInstance("empushy")
+            val firebaseApp = Empushy.initialise(activity)
             val authInstance: FirebaseAuth = FirebaseAuth.getInstance(firebaseApp)
             ref = FirebaseDatabase.getInstance(firebaseApp).reference
 
@@ -106,7 +108,7 @@ class EmpushyToggleButton : LinearLayout {
             }
         }
         else{
-            tb.setOnClickListener({v ->
+            tb.setOnClickListener({
                 tb.isChecked = false
                 Toast.makeText(context, "You must have an internet connection to toggle this setting.", Toast.LENGTH_LONG).show()})
         }

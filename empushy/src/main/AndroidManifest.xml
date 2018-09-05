@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--EmPushy Library Manifest-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="eu.aempathy.empushy">
 
+    <!-- Permission necessary for EmPushy Library -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application>
+        <!--Notification Listener Service-->
         <service
             android:name=".services.EmpushyNotificationService"
             android:enabled="true"
@@ -17,6 +20,8 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!--Boot Receiver-->
         <receiver
             android:name="eu.aempathy.empushy.services.BootReceiver"
             android:label="BootReceiver">
@@ -24,10 +29,15 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+
+        <!--Activity shown on opening EmPushy notification-->
         <activity
             android:name=".activities.DetailActivity"
             android:theme="@style/EmpushyTheme"
             android:screenOrientation="portrait"/>
+
+        <!--Activity shown on enabling EmPushy toggle button-->
         <activity
             android:name=".activities.AuthActivity"
             android:theme="@style/EmpushyTheme"

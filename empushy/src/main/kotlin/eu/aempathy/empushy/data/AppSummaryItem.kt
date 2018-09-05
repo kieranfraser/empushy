@@ -4,7 +4,8 @@ import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
 /**
- * Created by Kieran on 19/03/2018.
+ * Used in the Detail activity to summarise the notifications
+ * by application, and active/hidden status.
  */
 data class AppSummaryItem(
 

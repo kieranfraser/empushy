@@ -1,7 +1,6 @@
 package eu.aempathy.empushy.activities
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -17,42 +16,54 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.init.Empushy
+import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.services.EmpushyNotificationService
 import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.NotificationUtil
 import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
+/**
+ * AuthActivity
+ * - activity launched when toggle button checked.
+ * - used to handle logging in the user and starting the
+ *      notification listener service.
+ * - handles concurrent library logins and ensures single
+ *      foreground service running.
+ * - handles consent for notification listener service and
+ *      app stats.
+ */
 class AuthActivity : AppCompatActivity() {
 
-    private val TAG = AuthActivity::class.java.simpleName
+    private val TAG = EMPUSHY_TAG + AuthActivity::class.java.simpleName
+
     private var firebaseApp: FirebaseApp ?= null
     private var runningRef: DatabaseReference ?= null
-
-    // Choose authentication providers
-    var providers: List<AuthUI.IdpConfig> = Arrays.asList(
+    private var providers: List<AuthUI.IdpConfig> = Arrays.asList(
             AuthUI.IdpConfig.EmailBuilder().build())
 
+    /**
+     * Setup buttons
+     * Check status of permissions
+     * Check status of user auth
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.activity_auth)
 
-        // create explanation and consent button
-        // on consent given
         val btAccept = findViewById(R.id.bt_empushy_consent_accept) as Button
         val btCancel = findViewById(R.id.bt_empushy_consent_cancel) as Button
-        btCancel.setOnClickListener({ v ->
+        btCancel.setOnClickListener({
             val intent = Intent();
             setResult(RESULT_CANCELED, intent);
             finish()
         })
 
-        val listenerGranted = StateUtils.isNotificationListenerGranted(applicationContext?.contentResolver, "com.aempathy.heedful")
+        val listenerGranted = StateUtils.isNotificationListenerGranted(applicationContext?.contentResolver, packageName)
         val usageGranted = StateUtils.isUsagePermissionGranted(applicationContext)
         if (listenerGranted && usageGranted) {
-            Empushy.initEmpushyApp(applicationContext)
-            firebaseApp = FirebaseApp.getInstance("empushy")
+            firebaseApp = Empushy.initialise(applicationContext)
             if (applicationContext != null) {
                 btAccept.text = "Login or Sign up"
                 btAccept.setOnClickListener({
@@ -75,11 +86,16 @@ class AuthActivity : AppCompatActivity() {
                 }
             }
         } else {
-            btAccept.setOnClickListener({ v -> consentGranted(listenerGranted, usageGranted) })
+            btAccept.setOnClickListener({ consentGranted(listenerGranted) })
         }
     }
 
-    fun consentGranted(listenerGranted:Boolean, usageGranted:Boolean){
+    /**
+     * Start settings activity for user permissions if not granted already:
+     * 1. NotificationListener
+     * 2. UsageStats
+     */
+    private fun consentGranted(listenerGranted:Boolean){
         if(!listenerGranted){
             Toast.makeText(applicationContext, "Please enable Notification Listener.", Toast.LENGTH_LONG).show()
             startActivityForResult(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"), 121)
@@ -91,10 +107,12 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
-    fun permissionGranted(){
+    /**
+     * On all permissions granted, start sign in process.
+     */
+    private fun permissionGranted(){
         Toast.makeText(applicationContext, "Permissions Granted.", Toast.LENGTH_LONG).show()
-        Empushy.initEmpushyApp(applicationContext)
-        firebaseApp = FirebaseApp.getInstance("empushy")
+        firebaseApp = Empushy.initialise(applicationContext)
         if(applicationContext!=null) {
             try {
                 startActivityForResult(
@@ -107,6 +125,10 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Catches result of permission activities (granted or not)
+     * and result of authentication (sign in success or failure)
+     */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -136,14 +158,14 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * On successful sign-in (only executed when all permissions granted)
+     * check whether library in use for this user already
+     * - if so, don't start foreground notification, but keep user logged in.
+     * - if not, start foreground notification
+     */
     fun signInSuccess(){
-
         Log.d(TAG, "Sign in success.")
-        // check currentuser not null,
-        // read db for services running
-        // yes, do nothing
-        // no, start notification
-        // regardless, add app package to db
         try {
 
             val authInstance = FirebaseAuth.getInstance(firebaseApp!!)
@@ -161,6 +183,10 @@ class AuthActivity : AppCompatActivity() {
 
     }
 
+    /**
+     * Query Firebase database to check if user has no other application
+     * running the EmPushy service.
+     */
     var runningReadListener: ValueEventListener = object : ValueEventListener {
 
         override fun onDataChange(snapshot: DataSnapshot) {

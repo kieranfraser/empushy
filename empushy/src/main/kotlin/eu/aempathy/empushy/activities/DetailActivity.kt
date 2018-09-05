@@ -1,6 +1,5 @@
 package eu.aempathy.empushy.activities
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -9,11 +8,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
-import android.util.AttributeSet
 import android.util.Log
-import android.view.View
 import android.view.Window
-import android.widget.GridView
 import android.widget.Toast
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
@@ -26,7 +22,6 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import eu.aempathy.empushy.R
-import eu.aempathy.empushy.adapters.AppSummaryAdapter
 import eu.aempathy.empushy.adapters.HomeAdapter
 import eu.aempathy.empushy.adapters.SwipeToDeleteCallback
 import eu.aempathy.empushy.data.AppSummaryItem
@@ -38,6 +33,12 @@ import eu.aempathy.empushy.utils.DataUtils
 import kotlinx.android.synthetic.main.activity_detail.*
 import java.util.*
 
+/**
+ * DetailActivity
+ * - activity opened when the user clicks on the EmPushy notification
+ * - displays the active notifications in summary format
+ * - displays a graph of the previous 24 hours of notification engagement
+ */
 class DetailActivity : AppCompatActivity() {
     val TAG = "MyDetailActivity"
 
@@ -49,7 +50,6 @@ class DetailActivity : AppCompatActivity() {
     var notifications = mutableListOf<EmpushyNotification>()
 
     var cachedNotificationsRef: DatabaseReference ?= null
-    var cachedListener: ValueEventListener ?= null
 
     var archivedNotificationsRef: DatabaseReference ?= null
     var archivedListener: ValueEventListener ?= null
@@ -73,9 +73,8 @@ class DetailActivity : AppCompatActivity() {
 
         try {
 
-            Empushy.initEmpushyApp(applicationContext)
-            val firebaseApp = FirebaseApp.getInstance("empushy")
-            val authInstance = FirebaseAuth.getInstance(firebaseApp!!)
+            val firebaseApp = Empushy.initialise(applicationContext)
+            val authInstance = FirebaseAuth.getInstance(firebaseApp)
             ref = FirebaseDatabase.getInstance(firebaseApp).reference
             selectedId = authInstance.currentUser?.uid
 
