@@ -101,7 +101,44 @@ class EmpushyNotificationService : NotificationListenerService() {
             val appItem = intent.getSerializableExtra("notification") as AppSummaryItem
             notificationRemoval(appItem)
         }
+        else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
+            val notification = intent.getSerializableExtra("notification") as EmpushyNotification
+            notificationOpened(notification)
+        }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun notificationOpened(notification: EmpushyNotification){
+        if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
+            val currentUser = authInstance?.currentUser
+            if (currentUser != null) {
+                Log.i(TAG, "Notification Opened")
+
+                val activeNotification = NotificationUtil.isInList(activeList, notification.notifyId
+                        ?: 0, notification.app ?: "")
+                if (activeNotification != null) {
+                    NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                    activeNotification.clicked = true
+                    ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
+                    if (activeList != null)
+                        activeList!!.remove(activeNotification)
+                } else {
+                    val cachedNotification = NotificationUtil.isInList(cachedList, notification.notifyId
+                            ?: 0, notification.app ?: "")
+                    if (cachedNotification != null) {
+                        NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
+                        cachedNotification.clicked = true
+                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
+                                .setValue(cachedNotification)
+                        if (cachedList != null)
+                            cachedList!!.remove(cachedNotification)
+                        return
+                    }
+                }
+                //consolidateActiveList(currentUser.uid)
+                updateEmpushyNotification()
+            }
+        }
     }
 
     private fun notificationRemoval(appItem: AppSummaryItem?){
@@ -201,7 +238,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             }
 
             val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
-
+            notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
             notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
             val intent = PendingIntent.getActivity(applicationContext, 0,
@@ -212,11 +249,10 @@ class EmpushyNotificationService : NotificationListenerService() {
                     .setSmallIcon(R.mipmap.ic_empushy)
                     .setSubText("(EmPushy)")
                     .setContentIntent(intent)
-                    .setContentText("EmPushy legacy running.")
+                    .setContentText("EmPushy running.")
                     .setOnlyAlertOnce(true)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, DetailActivity::class.java), 0))
                     .setCustomContentView(collapsedView)
                     .setCustomBigContentView(expandedView)
                     .setStyle(android.support.v4.app.NotificationCompat.DecoratedCustomViewStyle())
@@ -230,6 +266,13 @@ class EmpushyNotificationService : NotificationListenerService() {
 
         val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
         val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
+
+        val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
+        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+        val intent = PendingIntent.getActivity(applicationContext, 0,
+                notificationIntent, 0)
 
 
         collapsedView.setTextViewText(R.id.tv_notification_collapsed_need_attention, activeList?.size.toString())
@@ -273,10 +316,10 @@ class EmpushyNotificationService : NotificationListenerService() {
                 .setColor(ContextCompat.getColor(applicationContext, R.color.colorPrimary))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentTitle("EmPushy Title")
-                .setContentText("EmPushy descript")
+                .setContentText("EmPushy running.")
                 .setSubText("(EmPushy)")
                 .setOnlyAlertOnce(true)
-                .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, DetailActivity::class.java), 0))
+                .setContentIntent(intent)
                 .setCustomContentView(collapsedView)
                 .setCustomBigContentView(expandedView)
                 .setStyle(android.support.v4.app.NotificationCompat.DecoratedCustomViewStyle())

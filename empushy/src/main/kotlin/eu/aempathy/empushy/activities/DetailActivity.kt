@@ -409,6 +409,9 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        finish()
+    }
 
     fun refresh() {
         getNotifications(selectedId)
