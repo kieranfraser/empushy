@@ -212,7 +212,7 @@
                     android:layout_height="50dp"
                     android:layout_gravity="center_vertical|center_horizontal"
                     android:layout_marginEnd="20dp"
-                    android:src="@drawable/ic_launcher_background"
+                    android:src="@drawable/empushy_icon"
                     android:visibility="gone"/>
                 <ImageView
                     android:id="@+id/iv_notification_icon_2"
@@ -220,7 +220,7 @@
                     android:layout_height="50dp"
                     android:layout_gravity="center_vertical|center_horizontal"
                     android:layout_marginEnd="20dp"
-                    android:src="@drawable/ic_launcher_background"
+                    android:src="@drawable/empushy_icon"
                     android:visibility="gone"/>
                 <ImageView
                     android:id="@+id/iv_notification_icon_3"
@@ -228,7 +228,7 @@
                     android:layout_height="50dp"
                     android:layout_gravity="center_vertical|center_horizontal"
                     android:layout_marginEnd="20dp"
-                    android:src="@drawable/ic_launcher_background"
+                    android:src="@drawable/empushy_icon"
                     android:visibility="gone"/>
                 <TextView
                     android:id="@+id/tv_notification_more"

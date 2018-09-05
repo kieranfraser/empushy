@@ -13,11 +13,13 @@ import android.widget.Toast
 import android.widget.ToggleButton
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.activities.AuthActivity
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.services.EmpushyNotificationService
+import kotlinx.android.synthetic.main.empushy_toggle_button.view.*
 
 /**
  * Created by Kieran on 29/06/2018.
@@ -27,7 +29,6 @@ class EmpushyToggleButton : LinearLayout {
 
     private val TAG = EmpushyToggleButton::class.java.simpleName
     private var ref:DatabaseReference ?= null
-    private var runningRef: DatabaseReference ?= null
 
     private var mContext: Context ?= null
 
@@ -52,7 +53,6 @@ class EmpushyToggleButton : LinearLayout {
         inflater.inflate(R.layout.empushy_toggle_button, this, true)
 
         setUpToggle()
-
     }
 
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
@@ -110,5 +110,10 @@ class EmpushyToggleButton : LinearLayout {
                 tb.isChecked = false
                 Toast.makeText(context, "You must have an internet connection to toggle this setting.", Toast.LENGTH_LONG).show()})
         }
+    }
+
+    fun update(context: Context){
+        val tb = (getChildAt(0) as LinearLayout).getChildAt(1) as ToggleButton
+        tb.isChecked = Empushy.loggedIn(context)
     }
 }

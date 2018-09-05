@@ -42,7 +42,11 @@ class AuthActivity : AppCompatActivity() {
         // on consent given
         val btAccept = findViewById(R.id.bt_empushy_consent_accept) as Button
         val btCancel = findViewById(R.id.bt_empushy_consent_cancel) as Button
-        btCancel.setOnClickListener({ v -> finish() })
+        btCancel.setOnClickListener({ v ->
+            val intent = Intent();
+            setResult(RESULT_CANCELED, intent);
+            finish()
+        })
 
         val listenerGranted = StateUtils.isNotificationListenerGranted(applicationContext?.contentResolver, "com.aempathy.heedful")
         val usageGranted = StateUtils.isUsagePermissionGranted(applicationContext)
@@ -172,6 +176,8 @@ class AuthActivity : AppCompatActivity() {
                 runningRef?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))
                         ?.setValue(true)
                         ?.addOnCompleteListener {
+                            val intent = Intent();
+                            setResult(RESULT_OK, intent);
                             finish()
                         }
             }
@@ -181,6 +187,8 @@ class AuthActivity : AppCompatActivity() {
                 myService.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
                 startService(myService)
                 stopService(myService)
+                val intent = Intent();
+                setResult(RESULT_CANCELED, intent);
                 finish()
             }
         }

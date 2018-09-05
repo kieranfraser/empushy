@@ -199,7 +199,8 @@ class EmpushyNotificationService : NotificationListenerService() {
 
             val builder = android.support.v4.app.NotificationCompat.Builder(this)
                     .setContentTitle("EmPushy")
-                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                    .setSmallIcon(R.mipmap.ic_empushy)
+                    .setSubText("(EmPushy)")
                     .setContentIntent(intent)
                     .setContentText("EmPushy legacy running.")
                     .setOnlyAlertOnce(true)
@@ -258,11 +259,12 @@ class EmpushyNotificationService : NotificationListenerService() {
         val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createChannel(mNotifyManager)
         val builder = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setSmallIcon(R.mipmap.ic_empushy)
                 .setColor(ContextCompat.getColor(applicationContext, R.color.colorPrimary))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentTitle("EmPushy Title")
                 .setContentText("EmPushy descript")
+                .setSubText("(EmPushy)")
                 .setOnlyAlertOnce(true)
                 .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, DetailActivity::class.java), 0))
                 .setCustomContentView(collapsedView)

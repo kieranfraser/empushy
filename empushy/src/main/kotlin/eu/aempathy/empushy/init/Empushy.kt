@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 /**
@@ -55,5 +56,14 @@ object Empushy {
             return app
         }
 
+    }
+
+    fun loggedIn(context: Context): Boolean{
+        try {
+            val app = initEmpushyApp(context)
+            if( FirebaseAuth.getInstance(app).currentUser != null)
+                return true
+        } catch(e: Exception){}
+        return false
     }
 }

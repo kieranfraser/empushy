@@ -44,7 +44,7 @@
                     android:id="@+id/iv_home_current_relation"
                     android:layout_width="match_parent"
                     android:layout_height="30dp"
-                    android:src="@drawable/heedful_logo_100"
+                    android:src="@drawable/empushy_logo2_100"
                     android:layout_centerHorizontal="true"
                     android:layout_centerVertical="true"/>
             </RelativeLayout>
