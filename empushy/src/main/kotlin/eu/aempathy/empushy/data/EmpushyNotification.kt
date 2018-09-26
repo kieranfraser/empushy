@@ -1,6 +1,7 @@
 package eu.aempathy.empushy.data
 
 import com.google.gson.annotations.SerializedName
+import org.json.JSONObject
 import java.io.Serializable
 
 /**
@@ -33,4 +34,25 @@ data class EmpushyNotification(
         @SerializedName("placeCategories") var placeCategories: ArrayList<Int> ?= null,
         @SerializedName("hidden") var hidden: Boolean ?= false
 
-) : Serializable
+) : Serializable{
+
+        fun convertToJSON(): JSONObject{
+            val o = JSONObject()
+            o.put("app", app)
+            o.put("appName", appName)
+            o.put("category", category)
+            o.put("clicked", clicked)
+            o.put("extraText", extraText)
+            o.put("extraTitle", extraTitle)
+            o.put("hidden", hidden)
+            o.put("id", id)
+            o.put("infoText", infoText)
+            o.put("notifyId", notifyId)
+            o.put("removedTime", removedTime)
+            o.put("subText", subText)
+            o.put("ticker", ticker)
+            o.put("time", time)
+            return o
+        }
+
+}

@@ -179,7 +179,6 @@ class DetailActivity : AppCompatActivity() {
         override fun onDataChange(snapshot: DataSnapshot) {
             appSummaryItems.clear();
             notifications.clear();
-            tv_home_need_attention.text = snapshot.childrenCount.toString()
             val newNotifications = ArrayList<EmpushyNotification>();
             for(child in snapshot.children){
                 val notification = child?.getValue(EmpushyNotification::class.java)
@@ -189,18 +188,24 @@ class DetailActivity : AppCompatActivity() {
             }
             notifications.addAll(newNotifications);
             notifications.sortByDescending { selector(it) }
+
+            tv_home_need_attention.text = notifications.filter{n -> n.hidden==false}.size.toString()
+            tv_home_for_later.text = notifications.filter{n -> n.hidden==true}.size.toString()
             gv_home.adapter.notifyDataSetChanged()
 
+
             // cached notifications - selectedId may have changed at this point?
-            cachedNotificationsRef = ref?.child(CACHED)?.child(NOTIFICATIONS)?.child(selectedId?:"none")?.child(MOBILE)
-            cachedNotificationsRef!!.orderByKey().addListenerForSingleValueEvent(readCacheListener)
+            /*cachedNotificationsRef = ref?.child(CACHED)?.child(NOTIFICATIONS)?.child(selectedId?:"none")?.child(MOBILE)
+            cachedNotificationsRef!!.orderByKey().addListenerForSingleValueEvent(readCacheListener)*/
+
+            notificationAnalysis()
         }
 
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
     // Listener for cached notifications called after active notifications
-    var readCacheListener: ValueEventListener = object : ValueEventListener  {
+    /*var readCacheListener: ValueEventListener = object : ValueEventListener  {
 
         override fun onDataChange(snapshot: DataSnapshot) {
             tv_home_for_later.text = snapshot.childrenCount.toString()
@@ -214,12 +219,11 @@ class DetailActivity : AppCompatActivity() {
             }
             notifications.addAll(newNotifications);
             notifications.sortByDescending { selector(it) }
-            notificationAnalysis()
         }
 
         override fun onCancelled(databaseError: DatabaseError) {
             Log.d(TAG, "error")}
-    }
+    }*/
 
     // Listener for archived notifications
     var readArchiveListener: ValueEventListener = object : ValueEventListener  {
@@ -265,7 +269,7 @@ class DetailActivity : AppCompatActivity() {
                 val list = ArrayList<EmpushyNotification>()
                 list.add(notification)
                 var newItem: AppSummaryItem;
-                if(notification.hidden?:false)
+                    if(notification.hidden?:false)
                     newItem = AppSummaryItem(notification.app,
                             notification.appName, ArrayList(), list)
                 else
