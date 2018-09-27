@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:design="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_background"
+    design:context="eu.aempathy.empushy.activities.DetailActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/app_background">
+
+        <!--Top menu-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingEnd="20dp"
+            android:paddingStart="20dp"
+            android:gravity="center"
+            android:background="@color/colorDarkBlue">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/ib_home_refresh"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentEnd="false"
+                    android:layout_centerVertical="true"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_refresh_white_36dp"
+                    android:background="#0000"/>
+
+                <ImageView
+                    android:id="@+id/iv_home_current_relation"
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:src="@drawable/empushy_logo2_100"
+                    android:layout_centerHorizontal="true"
+                    android:layout_centerVertical="true"/>
+
+                <ImageButton
+                    android:id="@+id/ib_home_settings"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_refresh_white_36dp"
+                    android:background="#0000"/>
+            </RelativeLayout>
+        </LinearLayout>
+
+        <ExpandableListView
+            android:id="@+id/elv_features"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:dividerHeight="0.5dp"
+            android:layout_weight="1"/>
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:text="simulate changes"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:text="simulate"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
+</LinearLayout>

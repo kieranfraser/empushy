@@ -47,6 +47,16 @@
                     android:src="@drawable/empushy_logo2_100"
                     android:layout_centerHorizontal="true"
                     android:layout_centerVertical="true"/>
+
+                <ImageButton
+                    android:id="@+id/ib_home_settings"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_refresh_white_36dp"
+                    android:background="#0000"/>
             </RelativeLayout>
         </LinearLayout>
 

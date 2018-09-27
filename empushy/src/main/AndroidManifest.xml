@@ -37,6 +37,12 @@
             android:theme="@style/EmpushyTheme"
             android:screenOrientation="portrait"/>
 
+        <!--Activity shown on opening Settings-->
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:theme="@style/EmpushyTheme"
+            android:screenOrientation="portrait"/>
+
         <!--Activity shown on enabling EmPushy toggle button-->
         <activity
             android:name=".activities.AuthActivity"

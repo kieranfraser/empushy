@@ -109,6 +109,8 @@ class DetailActivity : AppCompatActivity() {
         itemTouchHelper.attachToRecyclerView(gv_home)
 
         ib_home_refresh.setOnClickListener({refresh()})
+        ib_home_settings.setOnClickListener({settings()})
+
         getNotifications(selectedId)
     }
 
@@ -419,5 +421,10 @@ class DetailActivity : AppCompatActivity() {
 
     fun refresh() {
         getNotifications(selectedId)
+    }
+
+    fun settings(){
+        val settingsIntent = Intent(applicationContext, SettingsActivity::class.java)
+        startActivity(settingsIntent)
     }
 }
