@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:elevation="2dp"
             android:padding="5dp"
-            android:orientation="vertical"
+            android:orientation="horizontal"
             android:gravity="center">
 
             <TextView
@@ -26,40 +26,13 @@
                 android:layout_height="wrap_content"
                 android:text="0"
                 android:textColor="@color/white"
-                android:textSize="16sp"/>
+                android:textSize="16sp"
+                android:layout_marginEnd="10dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="need attention"
-                android:textSize="12sp"
-                android:textColor="@color/white"/>
-
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:background="@color/colorDarkBlue"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:elevation="2dp"
-            android:padding="5dp"
-            android:orientation="vertical"
-            android:gravity="center">
-
-            <TextView
-                android:id="@+id/tv_notification_collapsed_for_later"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0"
-                android:textColor="@color/white"
-                android:textSize="16sp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="for later"
+                android:text="notifications need attention"
                 android:textSize="12sp"
                 android:textColor="@color/white"/>
 

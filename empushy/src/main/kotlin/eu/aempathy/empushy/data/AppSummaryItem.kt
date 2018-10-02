@@ -11,7 +11,6 @@ data class AppSummaryItem(
 
         @SerializedName("app") var app: String ?= null,
         @SerializedName("appName") var appName: String ?= null,
-        @SerializedName("active") var active: ArrayList<EmpushyNotification> ?= ArrayList(),
-        @SerializedName("hidden") var hidden: ArrayList<EmpushyNotification> ?= ArrayList()
+        @SerializedName("active") var active: ArrayList<EmpushyNotification> ?= ArrayList()
 
 ) : Serializable

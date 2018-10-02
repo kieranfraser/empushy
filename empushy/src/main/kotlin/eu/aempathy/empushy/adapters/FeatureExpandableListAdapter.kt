@@ -6,17 +6,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseExpandableListAdapter
-import android.widget.CheckBox
-import android.widget.CompoundButton
-import android.widget.TextView
+import android.widget.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.data.Feature
 
 class FeatureExpandableListAdapter internal constructor(private val context: Context,
                                                         private val titleList: List<String>,
                                                         private val dataList: HashMap<String, List<Feature>>,
-                                                        private val checkListener: (CompoundButton, Boolean) -> Unit
+                                                        private val onClickListener: (View) -> Unit
                                     ) : BaseExpandableListAdapter() {
  
     override fun getChild(listPosition: Int, expandedListPosition: Int): Any {
@@ -41,7 +38,8 @@ class FeatureExpandableListAdapter internal constructor(private val context: Con
         val checkBox = convertView.findViewById<CheckBox>(R.id.cb_feature_item_enabled)
         checkBox.isChecked = feature.enabled?:false
         checkBox.tag = feature.id
-        checkBox.setOnCheckedChangeListener(checkListener)
+        //checkBox.setOnCheckedChangeListener(checkListener)
+        checkBox.setOnClickListener(onClickListener)
 
         return convertView
     }

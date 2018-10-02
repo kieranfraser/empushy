@@ -3,7 +3,9 @@ package eu.aempathy.empushy.activities
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.View
 import android.view.Window
+import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.ExpandableListView
 import android.widget.Toast
@@ -33,7 +35,6 @@ class SettingsActivity : AppCompatActivity() {
     var featureManager: FeatureManager ?= null
     var authInstance: FirebaseAuth ?= null
     var featureRef: DatabaseReference ?= null
-    var featureListener: ValueEventListener ?= null
 
     var expandableListView: ExpandableListView ?= null
     var adapter: FeatureExpandableListAdapter ?= null
@@ -73,7 +74,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         if (expandableListView != null) {
             adapter = FeatureExpandableListAdapter(this, titleList?: listOf(), featureData?: hashMapOf(),
-                    {button: CompoundButton, checked: Boolean -> checkChanged(button, checked) })
+                    {view: View -> onClickListener(view) })
             expandableListView!!.setAdapter(adapter)
 
             expandableListView!!.setOnGroupExpandListener {
@@ -93,21 +94,15 @@ class SettingsActivity : AppCompatActivity() {
             for(cat in expandedCats?.toMutableList()?: arrayListOf()){
                 expandableListView?.expandGroup(cat)
             }
-
-            /*expandableListView!!.setOnChildClickListener {
-                parent, v, groupPosition, childPosition, id ->
-                Toast.makeText(applicationContext,
-                        "Clicked: " + titleList?.get(groupPosition) + " -> " +
-                                featureData?.get(titleList?.get(groupPosition))?.get(childPosition), Toast.LENGTH_SHORT).show()
-                false
-            }*/
         }
 
     }
 
-    private fun checkChanged(button: CompoundButton, checked: Boolean){
-        val featureId = button.tag as String
-        featureManager?.updateFeatureEnabled(featureId, checked)
+    private fun onClickListener(view: View){
+        Log.d(TAG, "Clicked")
+        val featureId = view.tag as String
+        featureManager?.updateFeatureEnabled(applicationContext, featureId, (view as CheckBox).isChecked)
+        adapter?.notifyDataSetChanged()
     }
 
     /**
@@ -119,7 +114,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun getFeatures(){
         try {
             featureRef = ref?.child(USER_PATH)?.child(authInstance!!.currentUser!!.uid)?.child(FEATURE_PATH)
-            featureListener = featureRef?.addValueEventListener(readListener)
+            featureRef?.addListenerForSingleValueEvent(readListener)
         } catch(e: Exception){Log.d(TAG, "Unable to get features.")}
     }
 
@@ -151,11 +146,6 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            if (featureRef != null && featureListener != null) {
-                featureRef?.removeEventListener(featureListener!!)
-            }
-        } catch (e: Exception){Log.d(TAG, "Could not remove listener.")}
     }
 
     /**
@@ -175,13 +165,19 @@ class SettingsActivity : AppCompatActivity() {
 
             if(snapshot.hasChildren()) {
                 val featureList = ArrayList<Feature>()
+                val categoryList = ArrayList<String>()
                 for (child in snapshot.children) {
                     val feature = child?.getValue(Feature::class.java)
                     if (feature != null) {
                         featureList.add(feature)
+                        categoryList.add(feature.category?:"none")
                     }
                 }
+                featureManager?.features = featureList
+                featureManager?.categories = categoryList.distinct()
                 featureManager?.updateFeatures(featureList)
+                setUpUI()
+
             }
         }
 

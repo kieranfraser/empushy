@@ -37,7 +37,6 @@ class HomeAdapter (val appSummaryItemList: MutableList<AppSummaryItem>, val long
             val context = itemView.context
             itemView.tv_app_summary_item_app.text = appItem.appName
             itemView.tv_app_summary_item_now.text = appItem.active?.size.toString() + " for now";
-            itemView.tv_app_summary_item_later.text = appItem.hidden?.size.toString() + " for later";
             try {
                 val icon = context?.packageManager?.getApplicationIcon(appItem.app?.trim())
                 itemView.iv_app_summary_item_icon!!.setImageDrawable(icon)

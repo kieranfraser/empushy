@@ -55,7 +55,7 @@
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_refresh_white_36dp"
+                    android:src="@drawable/ic_settings"
                     android:background="#0000"/>
             </RelativeLayout>
         </LinearLayout>
@@ -69,6 +69,7 @@
             android:background="@drawable/my_background_shadow">
 
             <LinearLayout
+                android:id="@+id/ll_home_need_attention"
                 android:layout_width="0dp"
                 android:background="@color/colorBlue"
                 android:layout_weight="1"
@@ -101,6 +102,7 @@
 
 
             <LinearLayout
+                android:id="@+id/ll_home_for_later"
                 android:layout_width="0dp"
                 android:background="@color/colorDarkBlue"
                 android:layout_weight="1"
@@ -159,6 +161,16 @@
             </com.github.mikephil.charting.charts.LineChart>
 
         </LinearLayout>
+
+        <Button
+            android:id="@+id/bt_home_off"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disable Empushy"
+            android:background="@color/colorDarkBlue"
+            android:textColor="@color/colorGold"/>
 
     </LinearLayout>
 

@@ -3,6 +3,7 @@ package eu.aempathy.empushy.utils
 import eu.aempathy.empushy.data.AppSummaryItem
 import eu.aempathy.empushy.data.EmpushyNotification
 import java.util.*
+import kotlin.collections.HashMap
 
 /**
  * Various data manipulation/analysis functions.
@@ -68,32 +69,25 @@ class DataUtils {
 
         fun notificationAnalysis(notifications: ArrayList<EmpushyNotification>): ArrayList<AppSummaryItem>{
             // separate into app
-            val appSummaryItems = ArrayList<AppSummaryItem>()
+            val activeAppItems = ArrayList<AppSummaryItem>()
             for(notification in notifications){
                 // check if app is in summary list
                 // to get a a string
-                try {
-                    val selectedItem: AppSummaryItem = appSummaryItems.filter { s -> s.app == notification.app }.single()
-                    if(notification.hidden == true)
-                        selectedItem.hidden?.add(notification)
-                    else
+                if(notification.hidden == false) {
+                    try {
+                        val selectedItem: AppSummaryItem = activeAppItems.filter { s -> s.app == notification.app }.single()
                         selectedItem.active?.add(notification)
-                } catch(e: Exception){
-
-                    val list = ArrayList<EmpushyNotification>()
-                    list.add(notification)
-                    var newItem: AppSummaryItem;
-                    if(notification.hidden?:false)
-                        newItem = AppSummaryItem(notification.app,
-                                notification.appName, ArrayList(), list)
-                    else
-                        newItem = AppSummaryItem(notification.app,
-                                notification.appName, list, ArrayList())
-                    appSummaryItems.add(newItem)
+                    } catch (e: Exception) {
+                        val activeAppItem = AppSummaryItem()
+                        activeAppItem.app = notification.app
+                        activeAppItem.appName = notification.appName
+                        activeAppItem.active = arrayListOf()
+                        activeAppItem.active?.add(notification)
+                        activeAppItems.add(activeAppItem)
+                    }
                 }
-
             }
-            return appSummaryItems
+            return activeAppItems
         }
     }
 }

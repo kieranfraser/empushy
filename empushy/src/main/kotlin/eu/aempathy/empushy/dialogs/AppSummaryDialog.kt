@@ -74,18 +74,13 @@ class AppSummaryDialog: DialogFragment(){
         if(rbNow.isChecked)
             recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(),
                     {notification: EmpushyNotification -> notificationItemClicked(notification) })
-        else
-            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(),
-                    {notification: EmpushyNotification -> notificationItemClicked(notification) })
+
         // Create the AlertDialog object and return it
         radioGroup.setOnCheckedChangeListener(object: RadioGroup.OnCheckedChangeListener{
             override fun onCheckedChanged(p0: RadioGroup?, p1: Int) {
                 Log.d(TAG, "Changed checked")
                 if(rbNow.isChecked)
                     recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(),
-                            {notification: EmpushyNotification -> notificationItemClicked(notification) })
-                else
-                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.hidden?.toMutableList()?: mutableListOf(),
                             {notification: EmpushyNotification -> notificationItemClicked(notification) })
             }
         })

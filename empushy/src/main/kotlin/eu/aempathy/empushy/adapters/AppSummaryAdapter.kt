@@ -36,7 +36,6 @@ class AppSummaryAdapter(context: Context, var summaryItems: ArrayList<AppSummary
         val itemView = inflator.inflate(R.layout.app_summary_item, null)
         itemView.tv_app_summary_item_app.text = item.appName
         itemView.tv_app_summary_item_now.text = (item.active?.size.toString() + " for now");
-        itemView.tv_app_summary_item_later.text = (item.hidden?.size.toString() + " for later");
         try {
             val icon = context?.packageManager?.getApplicationIcon(item.app?.trim())
             itemView.iv_app_summary_item_icon!!.setImageDrawable(icon)

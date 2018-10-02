@@ -102,6 +102,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
         else if(intent.action.equals( Constants.ACTION.REMOVAL_ACTION)){
             val appItem = intent.getSerializableExtra("notification") as AppSummaryItem
+            val forNow = intent.getBooleanExtra("forNow", false)
             notificationRemoval(appItem)
         }
         else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
@@ -152,7 +153,6 @@ class EmpushyNotificationService : NotificationListenerService() {
 
                 val allNotifications = ArrayList<EmpushyNotification>()
                 allNotifications.addAll(appItem?.active?: emptyList())
-                allNotifications.addAll(appItem?.hidden?: emptyList())
                 for(n in allNotifications) {
 
                     val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId
@@ -162,18 +162,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
-                    } else {
-                        val cachedNotification = NotificationUtil.isInList(cachedList, n?.notifyId
-                                ?: 0, n?.app ?: "")
-                        if (cachedNotification != null) {
-                            NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
-
-                            ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
-                                    .setValue(cachedNotification)
-                            if (cachedList != null)
-                                cachedList!!.remove(cachedNotification)
-                            return
-                        }
                     }
                 }
                 //consolidateActiveList(currentUser.uid)
@@ -188,7 +176,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             if(snapshot.key == NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName)
                 && snapshot.value != null) {
 
-                startNotificationService(ArrayList(), false)
+                startNotificationService(ArrayList(), 0, false)
                 //subscribeToRemovals()
                 runningService = true
                 consolidateActiveList(authInstance?.currentUser?.uid?:"none")
@@ -201,20 +189,19 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
-    private fun startNotificationService(items: ArrayList<AppSummaryItem>, update: Boolean){
+    private fun startNotificationService(items: ArrayList<AppSummaryItem>, numHiddenItems: Int, update: Boolean){
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            promote26(items, update)
+            promote26(items, numHiddenItems, update)
         } else {
             val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
             val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
             var activeNum = 0
-            var hiddenNum = 0
+            val hiddenNum = numHiddenItems
 
             for(item in items) {
 
                 activeNum+=item.active?.size?:0
-                hiddenNum+=item.hidden?.size?:0
 
                 try {
                     val icon = applicationContext.packageManager.getApplicationIcon(item.app)
@@ -241,7 +228,6 @@ class EmpushyNotificationService : NotificationListenerService() {
             }
 
             collapsedView.setTextViewText(R.id.tv_notification_collapsed_need_attention, activeNum.toString())
-            collapsedView.setTextViewText(R.id.tv_notification_collapsed_for_later, hiddenNum.toString())
             expandedView.setTextViewText(R.id.tv_notification_expanded_need_attention, activeNum.toString())
             expandedView.setTextViewText(R.id.tv_notification_expanded_for_later, hiddenNum.toString())
 
@@ -271,12 +257,12 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     @TargetApi(26)
-    private fun promote26(items: ArrayList<AppSummaryItem>, update: Boolean) {
+    private fun promote26(items: ArrayList<AppSummaryItem>, numHiddenItems: Int, update: Boolean) {
 
         val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
         val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
         var activeNum = 0
-        var hiddenNum = 0
+        val hiddenNum = numHiddenItems
 
         val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
@@ -289,7 +275,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         for(item in items) {
 
             activeNum+=item.active?.size?:0
-            hiddenNum+=item.hidden?.size?:0
+            //hiddenNum+=item.hidden?.size?:0
 
             Log.d(TAG, "App item: "+item.appName)
             try {
@@ -318,7 +304,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
 
         collapsedView.setTextViewText(R.id.tv_notification_collapsed_need_attention, activeNum.toString())
-        collapsedView.setTextViewText(R.id.tv_notification_collapsed_for_later, hiddenNum.toString())
         expandedView.setTextViewText(R.id.tv_notification_expanded_need_attention, activeNum.toString())
         expandedView.setTextViewText(R.id.tv_notification_expanded_for_later, hiddenNum.toString())
 
@@ -381,6 +366,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                             ?: arrayListOf(),
                             cachedList ?: arrayListOf(), authInstance!!, ref!!, this)
                     taskPosted.execute(*arrayOf(sbn))
+                    cancelNotification(sbn.key)
                 }catch (e: Exception){Log.d(TAG, "Exception starting posted background task: "+e.toString())}
             }
         }
@@ -452,7 +438,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                     Log.d(TAG, activeList.toString())
 
 
-                    service.cancelNotification(sbn.key)
                 } catch (e: Exception) {
                     Log.d(TAG, "Exception in notification posted background task: " + e.toString())
                 }
@@ -524,7 +509,8 @@ class EmpushyNotificationService : NotificationListenerService() {
     fun updateEmpushyNotification(newList: ArrayList<EmpushyNotification>){
         Log.d(TAG, "Updating notification")
         val appItems = DataUtils.notificationAnalysis(newList)
-        startNotificationService(appItems, true)
+        val numHiddenItems = newList.filter { n -> n.hidden == true }.size
+        startNotificationService(appItems, numHiddenItems, true)
     }
 
     private fun consolidateActiveList(userId: String){
@@ -620,16 +606,6 @@ class EmpushyNotificationService : NotificationListenerService() {
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
                     } else {
-                        val cachedNotification = NotificationUtil.isInList(cachedList, n?.notifyId?:0, n?.app?:"")
-                        if (cachedNotification != null) {
-                            NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
-
-                            ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
-                                            .setValue(cachedNotification)
-                            if (cachedList != null)
-                                cachedList!!.remove(cachedNotification)
-                            return
-                        }
                         val notification = n
                         NotificationUtil.extractNotificationRemovedValue(notification?: EmpushyNotification(), applicationContext)
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(notification?.id!!).setValue(notification)

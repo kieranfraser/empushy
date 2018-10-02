@@ -3,6 +3,7 @@ package eu.aempathy.empushy.activities
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
@@ -30,6 +31,7 @@ import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.services.EmpushyNotificationService
 import eu.aempathy.empushy.utils.Constants
 import eu.aempathy.empushy.utils.DataUtils
+import eu.aempathy.empushy.utils.NotificationUtil
 import kotlinx.android.synthetic.main.activity_detail.*
 import java.util.*
 
@@ -44,10 +46,12 @@ class DetailActivity : AppCompatActivity() {
 
     var ref: DatabaseReference ?=null
     var selectedId: String ?= ""
+    var authInstance: FirebaseAuth ?= null
 
     var notificationsRef: DatabaseReference ?= null
     var mListener: ValueEventListener?= null
     var notifications = mutableListOf<EmpushyNotification>()
+    var forNow: Boolean = true
 
     var cachedNotificationsRef: DatabaseReference ?= null
 
@@ -74,9 +78,9 @@ class DetailActivity : AppCompatActivity() {
         try {
 
             val firebaseApp = Empushy.initialise(applicationContext)
-            val authInstance = FirebaseAuth.getInstance(firebaseApp)
+            authInstance = FirebaseAuth.getInstance(firebaseApp)
             ref = FirebaseDatabase.getInstance(firebaseApp).reference
-            selectedId = authInstance.currentUser?.uid
+            selectedId = authInstance?.currentUser?.uid
 
         } catch(e:Exception){finish()}
 
@@ -101,6 +105,7 @@ class DetailActivity : AppCompatActivity() {
                 removeAppSummaryItem(appItem)
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
                 myService.putExtra("notification", appItem)
+                myService.putExtra("forNow", forNow)
                 myService.setAction(Constants.ACTION.REMOVAL_ACTION);
                 startService(myService)
             }
@@ -110,18 +115,59 @@ class DetailActivity : AppCompatActivity() {
 
         ib_home_refresh.setOnClickListener({refresh()})
         ib_home_settings.setOnClickListener({settings()})
+        bt_home_off.setOnClickListener({logout()})
+        ll_home_need_attention.setOnClickListener({selectionChanged(ll_home_need_attention.id)})
+        ll_home_for_later.setOnClickListener({selectionChanged(ll_home_for_later.id)})
 
         getNotifications(selectedId)
+    }
+
+    private fun selectionChanged(id: Int){
+        if(id==R.id.ll_home_need_attention && !forNow){
+            forNow = true
+            ll_home_need_attention.setBackgroundColor(
+                    ContextCompat.getColor(applicationContext, R.color.colorBlue))
+            ll_home_for_later.setBackgroundColor(
+                    ContextCompat.getColor(applicationContext, R.color.colorDarkBlue))
+            // update list view
+            notificationAnalysis()
+        }
+        if(id==R.id.ll_home_for_later && forNow){
+            forNow = false
+            ll_home_need_attention.setBackgroundColor(
+                    ContextCompat.getColor(applicationContext, R.color.colorDarkBlue))
+            ll_home_for_later.setBackgroundColor(
+                    ContextCompat.getColor(applicationContext, R.color.colorBlue))
+            // update list view
+            notificationAnalysis()
+        }
     }
 
     private fun removeAppSummaryItem(a: AppSummaryItem){
         for(n in a.active?:ArrayList()){
             ref?.child("notifications")?.child(selectedId?:"none")?.child(MOBILE)?.child(n.id?:"none")?.removeValue()
         }
-        for(n in a.hidden?:ArrayList()){
-            ref?.child("cached/notifications")?.child(selectedId?:"none")?.child(MOBILE)?.child(n.id?:"none")?.removeValue()
-        }
         getNotifications(selectedId)
+    }
+
+    private fun logout(){
+        // ToDo: Create dialog with options for select 'break' time from service
+        if (selectedId != null) {
+
+            ref?.child("users")?.child(selectedId?:"none")?.child("running")
+                    ?.child(NotificationUtil.simplePackageName(applicationContext, applicationContext.packageName))?.removeValue()
+            // delete all apps running service
+            // notificationlistenerservice running should pick up and log out
+            // removes running notification (this code)
+            val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
+            myService.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
+            applicationContext.startService(myService)
+            applicationContext.stopService(myService)
+            authInstance?.signOut()
+            // checks if notification service running.. if so, stop
+            Toast.makeText(applicationContext, "Logged out of EmPushy.", Toast.LENGTH_LONG).show()
+            finish()
+        }
     }
 
     private fun longClickAppSummary(a : AppSummaryItem): Boolean {
@@ -135,13 +181,6 @@ class DetailActivity : AppCompatActivity() {
             }
             getNotifications(selectedId)
             Toast.makeText(applicationContext, "Removed active notifications from "+a.appName, Toast.LENGTH_LONG).show()
-        }
-        builder.setNegativeButton("Remove hidden"){dialog, which ->
-            for(n in a.hidden?:ArrayList()){
-                ref?.child("cached/notifications")?.child(selectedId?:"none")?.child(MOBILE)?.child(n.id?:"none")?.removeValue()
-            }
-            getNotifications(selectedId)
-            Toast.makeText(applicationContext, "Removed hidden notifications from "+a.appName, Toast.LENGTH_LONG).show()
         }
         builder.setNeutralButton("Cancel"){dialog,which ->
             dialog.cancel()
@@ -193,7 +232,7 @@ class DetailActivity : AppCompatActivity() {
 
             tv_home_need_attention.text = notifications.filter{n -> n.hidden==false}.size.toString()
             tv_home_for_later.text = notifications.filter{n -> n.hidden==true}.size.toString()
-            gv_home.adapter.notifyDataSetChanged()
+            //gv_home.adapter.notifyDataSetChanged()
 
 
             // cached notifications - selectedId may have changed at this point?
@@ -256,32 +295,45 @@ class DetailActivity : AppCompatActivity() {
     private fun notificationAnalysis(){
 
         Log.d(TAG, "Notification analysis")
+        appSummaryItems.clear()
+
         // separate into app
         for(notification in notifications){
             // check if app is in summary list
             // to get a a string
             try {
                 val selectedItem: AppSummaryItem = appSummaryItems.filter { s -> s.app == notification.app }.single()
-                if(notification.hidden == true)
-                    selectedItem.hidden?.add(notification)
-                else
-                    selectedItem.active?.add(notification)
+                if(forNow) {
+                    if (notification.hidden == false)
+                        selectedItem.active?.add(notification)
+                }
+                else {
+                    if (notification.hidden == true)
+                        selectedItem.active?.add(notification)
+                }
             } catch(e: Exception){
 
                 val list = ArrayList<EmpushyNotification>()
-                list.add(notification)
-                var newItem: AppSummaryItem;
-                    if(notification.hidden?:false)
-                    newItem = AppSummaryItem(notification.app,
-                            notification.appName, ArrayList(), list)
-                else
-                    newItem = AppSummaryItem(notification.app,
-                            notification.appName, list, ArrayList())
-                appSummaryItems.add(newItem)
+                if(forNow) {
+                    if (notification.hidden == false) {
+                        list.add(notification)
+                        var newItem: AppSummaryItem;
+                        newItem = AppSummaryItem(notification.app,
+                                notification.appName, list)
+                        appSummaryItems.add(newItem)
+                    }
+                }
+                else {
+                    if (notification.hidden == true) {
+                        list.add(notification)
+                        var newItem: AppSummaryItem;
+                        newItem = AppSummaryItem(notification.app,
+                                notification.appName, list)
+                        appSummaryItems.add(newItem)
+                    }
+                }
             }
-
             Log.d(TAG, "Notification size: "+appSummaryItems.size)
-
         }
         gv_home.adapter.notifyDataSetChanged()
     }
