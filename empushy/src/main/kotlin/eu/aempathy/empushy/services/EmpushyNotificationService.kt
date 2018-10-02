@@ -10,12 +10,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.media.AudioManager
 import android.os.AsyncTask
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
-import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.support.v4.app.NotificationCompat
@@ -23,14 +21,12 @@ import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
-import com.firebase.ui.auth.data.client.AuthUiInitProvider
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import eu.aempathy.empushy.R
 import eu.aempathy.empushy.activities.DetailActivity
-import eu.aempathy.empushy.data.AppSummaryItem
-import eu.aempathy.empushy.data.EmpushyNotification
+import eu.aempathy.empushy.data.*
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.utils.*
@@ -57,6 +53,11 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var firebaseApp: FirebaseApp? = null
     private var authInstance: FirebaseAuth? = null
     private var ref: DatabaseReference? = null
+
+
+    var featureRef: DatabaseReference ?= null
+    var featureManager: FeatureManager?= null
+    var featureListener: ValueEventListener ?= null
 
     private var runningRef: DatabaseReference ?= null
     private var runningListener: ChildEventListener ?= null
@@ -121,7 +122,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val activeNotification = NotificationUtil.isInList(activeList, notification.notifyId
                         ?: 0, notification.app ?: "")
                 if (activeNotification != null) {
-                    NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                    NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
+                            featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                     activeNotification.clicked = true
                     ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                     if (activeList != null)
@@ -130,7 +132,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                     val cachedNotification = NotificationUtil.isInList(cachedList, notification.notifyId
                             ?: 0, notification.app ?: "")
                     if (cachedNotification != null) {
-                        NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext)
+                        NotificationUtil.extractNotificationRemovedValue(cachedNotification, applicationContext,
+                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                         cachedNotification.clicked = true
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(cachedNotification.id!!)
                                 .setValue(cachedNotification)
@@ -158,7 +161,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                     val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId
                             ?: 0, n?.app ?: "")
                     if (activeNotification != null) {
-                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
+                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
@@ -352,8 +356,77 @@ class EmpushyNotificationService : NotificationListenerService() {
         activeList = ArrayList()
         cachedList = ArrayList()
 
+        featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
+
+        getFeatures()
         subscribeToRunning()
         // get rules
+    }
+
+    private fun getFeatures(){
+        try {
+            featureRef = ref?.child(FeatureManager.USER_PATH)?.child(authInstance!!.currentUser!!.uid)?.child(FeatureManager.FEATURE_PATH)
+            featureListener = featureRef?.addValueEventListener(featureReadListner)
+        } catch(e: Exception){Log.d(TAG, "Unable to get features.")}
+    }
+
+    var featureReadListner: ValueEventListener = object : ValueEventListener  {
+
+        override fun onDataChange(snapshot: DataSnapshot) {
+
+            if(snapshot.hasChildren()) {
+                val featureList = ArrayList<Feature>()
+                val categoryList = ArrayList<String>()
+                for (child in snapshot.children) {
+                    val feature = child?.getValue(Feature::class.java)
+                    if (feature != null) {
+                        featureList.add(feature)
+                        categoryList.add(feature.category?:"none")
+                    }
+                }
+                featureManager?.features = featureList
+                featureManager?.categories = categoryList.distinct()
+            }
+            else{
+                getCommonFeatures()
+            }
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
+    }
+
+    /**
+     * Call to get common features
+     *  - calls featureManager update() to update user in FB
+     *  - oneTimeCall
+     */
+    private fun getCommonFeatures(){
+        try {
+            ref?.child(FeatureManager.COMMON_FEATURE_PATH)?.addListenerForSingleValueEvent(commonReadListener)
+        } catch(e: Exception){Log.d(TAG, "Unable to get common features.")}
+    }
+
+    var commonReadListener: ValueEventListener = object : ValueEventListener  {
+
+        override fun onDataChange(snapshot: DataSnapshot) {
+
+            if(snapshot.hasChildren()) {
+                val featureList = ArrayList<Feature>()
+                val categoryList = ArrayList<String>()
+                for (child in snapshot.children) {
+                    val feature = child?.getValue(Feature::class.java)
+                    if (feature != null) {
+                        featureList.add(feature)
+                        categoryList.add(feature.category?:"none")
+                    }
+                }
+                featureManager?.features = featureList
+                featureManager?.categories = categoryList.distinct()
+                featureManager?.updateFeatures(featureList)
+            }
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {}
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -364,7 +437,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 try {
                     val taskPosted = NotificationPostedTask(applicationContext, activeList
                             ?: arrayListOf(),
-                            cachedList ?: arrayListOf(), authInstance!!, ref!!, this)
+                            featureManager!!, authInstance!!, ref!!, this)
                     taskPosted.execute(*arrayOf(sbn))
                     cancelNotification(sbn.key)
                 }catch (e: Exception){Log.d(TAG, "Exception starting posted background task: "+e.toString())}
@@ -373,21 +446,22 @@ class EmpushyNotificationService : NotificationListenerService() {
         // update notification
     }
 
-    private class NotificationPostedTask(context: Context, activeList: ArrayList<EmpushyNotification>, cachedList: ArrayList<EmpushyNotification>,
-                                         authInstance: FirebaseAuth, ref: DatabaseReference, service: EmpushyNotificationService) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
+    private class NotificationPostedTask(context: Context, activeList: ArrayList<EmpushyNotification>, featureManager: FeatureManager,
+                                         authInstance: FirebaseAuth, ref: DatabaseReference,
+                                         service: EmpushyNotificationService) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
 
         private val TAG = EMPUSHY_TAG + NotificationPostedTask::class.java.simpleName
         private val contextRef: WeakReference<Context>
         private val activeRef: WeakReference<ArrayList<EmpushyNotification>>
-        private val cachedRef: WeakReference<ArrayList<EmpushyNotification>>
         private val authRef: WeakReference<FirebaseAuth>
         private val refRef: WeakReference<DatabaseReference>
         private val serviceRef: WeakReference<EmpushyNotificationService>
+        private val featureManagerRef: WeakReference<FeatureManager>
 
         init {
             this.contextRef = WeakReference(context)
             this.activeRef = WeakReference(activeList)
-            this.cachedRef = WeakReference(cachedList)
+            this.featureManagerRef = WeakReference(featureManager)
             this.authRef = WeakReference(authInstance)
             this.refRef = WeakReference(ref)
             this.serviceRef = WeakReference(service)
@@ -402,15 +476,16 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val currentUser = authInstance.currentUser
                 val context = contextRef.get()
                 val activeList = activeRef.get()
-                val cachedList = cachedRef.get()
                 val ref = refRef.get()
                 val service = serviceRef.get()
+                val featureManager = featureManagerRef.get()
 
                 val sbn = sbns[0]
 
                 val notification = EmpushyNotification()
                 try {
-                    NotificationUtil.extractNotificationPostedValue(notification, sbn, context!!)
+                    NotificationUtil.extractNotificationPostedValue(notification, sbn, context!!,
+                            featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                     val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName)
 
                     // Check if notification should be cached or not
@@ -448,15 +523,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onProgressUpdate(vararg values: EmpushyNotification) {
             super.onProgressUpdate(*values)
         }
-
-        /*override fun onProgressUpdate(vararg values: StoryInterceptedNotification) {
-            val dataManager = dataManagerRef.get()
-            val context = contextRef.get()
-            if (values[0] != null) {
-                val insightfulTask = LogInsightfulTask(dataManager, context)
-                insightfulTask.execute(values[0])
-            }
-        }*/
 
         override fun onPostExecute(n: String) {
         }
@@ -526,6 +592,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             runningRef?.removeEventListener(runningListener!!)
             removalActiveRef?.removeEventListener(removalActiveListener!!)
             removalCacheRef?.removeEventListener(removalCacheListener!!)
+            featureRef?.removeEventListener(featureListener!!)
         }catch(e:Exception){}
         Log.d(TAG, "Destroying listeners "+applicationContext.packageName)
     }
@@ -601,13 +668,15 @@ class EmpushyNotificationService : NotificationListenerService() {
 
                     val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId?:0, n?.app?:"")
                     if (activeNotification != null) {
-                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext)
+                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
+                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
                     } else {
                         val notification = n
-                        NotificationUtil.extractNotificationRemovedValue(notification?: EmpushyNotification(), applicationContext)
+                        NotificationUtil.extractNotificationRemovedValue(notification?: EmpushyNotification(), applicationContext,
+                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(notification?.id!!).setValue(notification)
                     }
 

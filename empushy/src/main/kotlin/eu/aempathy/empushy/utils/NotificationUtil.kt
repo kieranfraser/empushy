@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.service.notification.StatusBarNotification
 import eu.aempathy.empushy.data.EmpushyNotification
+import eu.aempathy.empushy.data.Feature
+import eu.aempathy.empushy.data.FeatureManager
 import java.util.*
 
 /**
@@ -34,68 +36,83 @@ object NotificationUtil {
         return appName
     }
 
-    fun extractNotificationPostedValue(notification: EmpushyNotification, sbn: StatusBarNotification, context: Context) {
-        notification.notifyId = sbn.id
-        notification.app = sbn.packageName
-        notification.appName = simplePackageName(context, sbn.packageName.trim { it <= ' ' })
-        notification.time = sbn.postTime
-        notification.id = sbn.postTime.toString()
+    fun extractNotificationPostedValue(notification: EmpushyNotification, sbn: StatusBarNotification, context: Context,
+                                       features: List<Feature>) {
 
         val n = sbn.notification
-        if (n.tickerText != null)
-            notification.ticker = n.tickerText.toString()
-        // extras
-        if (n.extras.containsKey(Notification.EXTRA_BIG_TEXT)) {
-            notification.extraBigText = if (n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT) != null)
-                n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)!!.toString()
-            else
-                ""
+        notification.id = sbn.postTime.toString()
+        notification.notifyId = sbn.id
+
+        var feature = features.filter { f -> f.name == "app" }
+        if(feature.isNotEmpty() && feature[0].enabled!!) {
+            notification.app = sbn.packageName
+            notification.appName = simplePackageName(context, sbn.packageName.trim { it <= ' ' })
         }
-        if (n.extras.containsKey(Notification.EXTRA_INFO_TEXT)) {
-            notification.infoText = if (n.extras.getCharSequence(Notification.EXTRA_INFO_TEXT) != null)
-                n.extras.getCharSequence(Notification.EXTRA_INFO_TEXT)!!.toString()
-            else
-                ""
+
+        feature = features.filter { f -> f.name == "time" }
+        if(feature.isNotEmpty() && feature[0].enabled!!)
+            notification.time = sbn.postTime
+
+        feature = features.filter { f -> f.name == "text" }
+        if(feature.isNotEmpty() && feature[0].enabled!!) {
+            if (n.tickerText != null)
+                notification.ticker = n.tickerText.toString()
+            // extras
+            if (n.extras.containsKey(Notification.EXTRA_BIG_TEXT)) {
+                notification.extraBigText = if (n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_INFO_TEXT)) {
+                notification.infoText = if (n.extras.getCharSequence(Notification.EXTRA_INFO_TEXT) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_INFO_TEXT)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_SUB_TEXT)) {
+                notification.subText = if (n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_SUMMARY_TEXT)) {
+                notification.summaryText = if (n.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_TEXT)) {
+                notification.extraText = if (n.extras.getCharSequence(Notification.EXTRA_TEXT) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_TEXT)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_TEXT_LINES)) {
+                notification.extraTextLines = if (n.extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES) != null)
+                    convertCharSequenceArrayToString(n.extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES))
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_TITLE)) {
+                notification.extraTitle = if (n.extras.getCharSequence(Notification.EXTRA_TITLE) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_TITLE)!!.toString()
+                else
+                    ""
+            }
+            if (n.extras.containsKey(Notification.EXTRA_TITLE_BIG)) {
+                notification.extraTitleBig = if (n.extras.getCharSequence(Notification.EXTRA_TITLE_BIG) != null)
+                    n.extras.getCharSequence(Notification.EXTRA_TITLE_BIG)!!.toString()
+                else
+                    ""
+            }
         }
-        if (n.extras.containsKey(Notification.EXTRA_SUB_TEXT)) {
-            notification.subText = if (n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT) != null)
-                n.extras.getCharSequence(Notification.EXTRA_SUB_TEXT)!!.toString()
-            else
-                ""
-        }
-        if (n.extras.containsKey(Notification.EXTRA_SUMMARY_TEXT)) {
-            notification.summaryText = if (n.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) != null)
-                n.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)!!.toString()
-            else
-                ""
-        }
-        if (n.extras.containsKey(Notification.EXTRA_TEXT)) {
-            notification.extraText = if (n.extras.getCharSequence(Notification.EXTRA_TEXT) != null)
-                n.extras.getCharSequence(Notification.EXTRA_TEXT)!!.toString()
-            else
-                ""
-        }
-        if (n.extras.containsKey(Notification.EXTRA_TEXT_LINES)) {
-            notification.extraTextLines = if (n.extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES) != null)
-                convertCharSequenceArrayToString(n.extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES))
-            else
-                ""
-        }
-        if (n.extras.containsKey(Notification.EXTRA_TITLE)) {
-            notification.extraTitle = if (n.extras.getCharSequence(Notification.EXTRA_TITLE) != null)
-                n.extras.getCharSequence(Notification.EXTRA_TITLE)!!.toString()
-            else
-                ""
-        }
-        if (n.extras.containsKey(Notification.EXTRA_TITLE_BIG)) {
-            notification.extraTitleBig = if (n.extras.getCharSequence(Notification.EXTRA_TITLE_BIG) != null)
-                n.extras.getCharSequence(Notification.EXTRA_TITLE_BIG)!!.toString()
-            else
-                ""
-        }
-        if (n.category != null) {
-            notification.category = n.category
-        }
+
+        feature = features.filter { f -> f.name == "category" }
+        if(feature.isNotEmpty() && feature[0].enabled!!)
+            if (n.category != null) {
+                notification.category = n.category
+            }
     }
 
     fun isInList(activeNotifications: ArrayList<EmpushyNotification>?,
@@ -118,8 +135,11 @@ object NotificationUtil {
         return concatenatedString
     }
 
-    fun extractNotificationRemovedValue(notification: EmpushyNotification, context: Context) {
-        notification.removedTime = System.currentTimeMillis()
+    fun extractNotificationRemovedValue(notification: EmpushyNotification, context: Context, features: List<Feature>) {
+        var feature = features.filter { f -> f.name == "time" }
+        if(feature.isNotEmpty() && feature[0].enabled!!)
+            notification.removedTime = System.currentTimeMillis()
+
         notification.clicked = appOpenedSincePosting(context, notification.app, notification.time!!)
     }
 

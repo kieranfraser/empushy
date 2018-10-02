@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import com.google.firebase.database.DatabaseReference
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
+import eu.aempathy.empushy.utils.LearnUtils
 import eu.aempathy.empushy.utils.StateUtils
 import java.util.*
 
@@ -75,7 +76,6 @@ class FeatureManager(f: ArrayList<Feature>, c: List<String>, r: DatabaseReferenc
 
     fun recommend(){}
 
-    fun simulate(){}
 
     fun abstractionScore(){}
 

@@ -3,8 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://C:\Users\Kieran\git\empushy\app\app.iml" filepath="C:\Users\Kieran\git\empushy\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/empushy.iml" filepath="$PROJECT_DIR$/empushy.iml" />
+      <module fileurl="file://C:\Users\Kieran\git\empushy\empushy.iml" filepath="C:\Users\Kieran\git\empushy\empushy.iml" />
       <module fileurl="file://$PROJECT_DIR$/empushy/empushy-empushy.iml" filepath="$PROJECT_DIR$/empushy/empushy-empushy.iml" />
+      <module fileurl="file://C:\Users\Kieran\git\empushy\empushy\empushy-empushy.iml" filepath="C:\Users\Kieran\git\empushy\empushy\empushy-empushy.iml" />
     </modules>
   </component>
 </project>
