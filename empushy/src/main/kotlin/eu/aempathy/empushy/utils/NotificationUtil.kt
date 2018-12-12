@@ -1,7 +1,7 @@
 package eu.aempathy.empushy.utils
 
-import android.app.ActivityManager
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -9,8 +9,12 @@ import android.content.pm.ApplicationInfo
 import android.service.notification.StatusBarNotification
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.data.Feature
-import eu.aempathy.empushy.data.FeatureManager
 import java.util.*
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import eu.aempathy.empushy.services.EmpushyNotificationService
+
 
 /**
  * Created by Kieran on 23/08/2018.
@@ -196,4 +200,30 @@ object NotificationUtil {
 
         return text
     }
+
+    fun createNotificationOpenIntent(context: Context, packageName: String): PendingIntent {
+        var intent = context.packageManager.getLaunchIntentForPackage(packageName)
+        if (intent != null) {
+            // We found the activity now start the activity
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            return PendingIntent.getActivity(context, 0,
+                    intent, 0)
+        } else {
+            // Bring user to the market or let them choose an app?
+            intent = Intent(Intent.ACTION_VIEW)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.data = Uri.parse("market://details?id=$packageName")
+            return PendingIntent.getActivity(context, 0,
+                    intent, 0)
+        }
+    }
+
+    fun createNotificationRemoveIntent(context: Context, nId: Int, id: String): PendingIntent{
+        val myService = Intent(context, EmpushyNotificationService::class.java)
+        myService.putExtra("notification", id)
+        myService.setAction(Constants.ACTION.REMOVAL_ACTION);
+        return PendingIntent.getService(context, nId,
+                myService, PendingIntent.FLAG_UPDATE_CURRENT)
+    }
+
 }

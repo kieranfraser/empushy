@@ -1,15 +1,13 @@
 package eu.aempathy.empushy.services
 
 import android.annotation.TargetApi
-import android.app.AlarmManager
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.Icon
 import android.os.AsyncTask
 import android.os.Build
 import android.os.IBinder
@@ -17,6 +15,7 @@ import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.View
@@ -47,6 +46,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     private val TAG = EMPUSHY_TAG + EmpushyNotificationService::class.java.simpleName
 
     val ANDROID_CHANNEL_ID = "EmPushy"
+    val EMPUSHY_NOTIFICATION_ID = 21192;
 
     private var runningService = false
 
@@ -102,9 +102,8 @@ class EmpushyNotificationService : NotificationListenerService() {
             stopService()
         }
         else if(intent.action.equals( Constants.ACTION.REMOVAL_ACTION)){
-            val appItem = intent.getSerializableExtra("notification") as AppSummaryItem
-            val forNow = intent.getBooleanExtra("forNow", false)
-            notificationRemoval(appItem)
+            val notificationId = intent.getStringExtra("notification")
+            notificationRemoval(notificationId)
         }
         else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
             val notification = intent.getSerializableExtra("notification") as EmpushyNotification
@@ -148,26 +147,26 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
     }
 
-    private fun notificationRemoval(appItem: AppSummaryItem?){
+    private fun notificationRemoval(id: String?){
+        Log.i(TAG, "Notification Removed")
         if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null) {
-                Log.i(TAG, "Notification Removed")
+                Log.i(TAG, "Notification Removed "+activeList?.size)
+                Log.d(TAG, id)
+                for(value in activeList?: arrayListOf())
+                    Log.d(TAG, "active ids "+value.id)
+                val foundNotifications: List<EmpushyNotification>? = activeList?.filter { n -> n.id == id }
 
-                val allNotifications = ArrayList<EmpushyNotification>()
-                allNotifications.addAll(appItem?.active?: emptyList())
-                for(n in allNotifications) {
-
-                    val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId
-                            ?: 0, n?.app ?: "")
-                    if (activeNotification != null) {
+                    if (foundNotifications != null && !foundNotifications.isEmpty()) {
+                        val activeNotification = foundNotifications[0]
                         NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
                                 featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
+                        ref?.child("notifications")?.child(currentUser.uid?:"none")?.child("mobile")?.child(activeNotification.id?:"none")?.removeValue()
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
                     }
-                }
                 //consolidateActiveList(currentUser.uid)
                 updateEmpushyNotification(activeList!!)
             }
@@ -193,10 +192,13 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onCancelled(databaseError: DatabaseError) {}
     }
 
+    /**
+     * Creates the EmPush notification (necessary for background service running)
+     */
     private fun startNotificationService(items: ArrayList<AppSummaryItem>, numHiddenItems: Int, update: Boolean){
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            promote26(items, numHiddenItems, update)
+            promote26(update)
         } else {
             val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
             val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
@@ -261,12 +263,12 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     @TargetApi(26)
-    private fun promote26(items: ArrayList<AppSummaryItem>, numHiddenItems: Int, update: Boolean) {
+    private fun promote26( update: Boolean) {
 
-        val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
-        val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
-        var activeNum = 0
-        val hiddenNum = numHiddenItems
+        val GROUP_KEY_EMPUSHY = "eu.aempathy.EMPUSHY"
+
+        val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        createChannel(mNotifyManager)
 
         val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
@@ -275,60 +277,68 @@ class EmpushyNotificationService : NotificationListenerService() {
         val intent = PendingIntent.getActivity(applicationContext, 0,
                 notificationIntent, 0)
 
+        var activeNum = 0
+        var notificationList = arrayListOf<Notification>()
 
-        for(item in items) {
-
-            activeNum+=item.active?.size?:0
+        var nId = 1 // so each Pending Intent is different per Notification!
+        for(empushyNotification in activeList?: arrayListOf()) {
+            Log.d(TAG, "create id: "+empushyNotification.id)
             //hiddenNum+=item.hidden?.size?:0
-
-            Log.d(TAG, "App item: "+item.appName)
             try {
-                val icon = applicationContext.packageManager.getApplicationIcon(item.app)
+                val icon = applicationContext.packageManager.getApplicationIcon(empushyNotification.app)
                 val bitmap = Bitmap.createBitmap(icon.getIntrinsicWidth(), icon.getIntrinsicHeight(), Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bitmap)
                 icon.setBounds(0, 0, canvas.getWidth(), canvas.getHeight())
                 icon.draw(canvas)
-                if(items.indexOf(item) == 0) {
-                    expandedView.setImageViewBitmap(R.id.iv_notification_icon_1, bitmap)
-                    expandedView.setViewVisibility(R.id.iv_notification_icon_1, View.VISIBLE)
-                }
-                if(items.indexOf(item) == 1) {
-                    expandedView.setImageViewBitmap(R.id.iv_notification_icon_2, bitmap)
-                    expandedView.setViewVisibility(R.id.iv_notification_icon_2, View.VISIBLE)
-                }
-                if(items.indexOf(item) == 2) {
-                    expandedView.setImageViewBitmap(R.id.iv_notification_icon_3, bitmap)
-                    expandedView.setViewVisibility(R.id.iv_notification_icon_3, View.VISIBLE)
-                    if(items.size>3)
-                        expandedView.setViewVisibility(R.id.tv_notification_more, View.VISIBLE)
-                    break
-                }
+                val newNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
+                        .setSmallIcon(R.mipmap.ic_empushy)
+                        .setLargeIcon(bitmap)
+                        .setContentTitle(empushyNotification.appName) // App name
+                        .setContentText(empushyNotification.id) // Text of notification
+                        .setGroup(GROUP_KEY_EMPUSHY)
+                        .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext,
+                                empushyNotification.app?:packageName))
+                        .setDeleteIntent(NotificationUtil.createNotificationRemoveIntent(applicationContext, nId,
+                                empushyNotification.id?:""))
+                        .setStyle(NotificationCompat.BigTextStyle()
+                                .bigText(NotificationUtil.extractUsefulText(empushyNotification)))
+                        .build()
+                notificationList.add(newNotification)
+                nId++
+
             } catch (e: Exception) {
                 Log.d(TAG, "Error setting icons.")}
         }
 
-        collapsedView.setTextViewText(R.id.tv_notification_collapsed_need_attention, activeNum.toString())
-        expandedView.setTextViewText(R.id.tv_notification_expanded_need_attention, activeNum.toString())
-        expandedView.setTextViewText(R.id.tv_notification_expanded_for_later, hiddenNum.toString())
-
-        val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createChannel(mNotifyManager)
-        val builder = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
+        val pre24SummaryNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
+                .setContentTitle("No notifications need your attention.")
+                //set content text to support devices running API level < 24
+                .setContentText(activeNum.toString()+ " notifications")
                 .setSmallIcon(R.mipmap.ic_empushy)
+                .setContentIntent(intent)
                 .setColor(ContextCompat.getColor(applicationContext, R.color.colorPrimary))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentTitle("EmPushy Title")
-                .setContentText("EmPushy running.")
-                .setSubText("(EmPushy)")
-                .setOnlyAlertOnce(true)
-                .setContentIntent(intent)
-                .setCustomContentView(collapsedView)
-                .setCustomBigContentView(expandedView)
-                .setStyle(android.support.v4.app.NotificationCompat.DecoratedCustomViewStyle())
-        if(update)
-            mNotifyManager.notify(21192, builder.build())
-        else
-            startForeground(21192, builder.build())
+                //build summary info into InboxStyle template
+                .setStyle(NotificationCompat.InboxStyle()
+                        .setSummaryText(activeNum.toString()+" need attention"))
+                //specify which group this notification belongs to
+                .setGroup(GROUP_KEY_EMPUSHY)
+                //set this notification as the summary for the group
+                .setGroupSummary(true)
+                .build()
+
+        //startForeground(EMPUSHY_NOTIFICATION_ID, pre24SummaryNotification)
+        NotificationManagerCompat.from(applicationContext).apply {
+            var id = 1
+            for(notification in notificationList) {
+                notify(id, notification)
+                id++
+            }
+            //notify(0, pre24SummaryNotification)
+        }
+
+        startForeground(EMPUSHY_NOTIFICATION_ID, pre24SummaryNotification)
+
     }
 
     @TargetApi(26)
@@ -356,8 +366,11 @@ class EmpushyNotificationService : NotificationListenerService() {
         activeList = ArrayList()
         cachedList = ArrayList()
 
-        featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
-
+        try {
+            featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
+        }catch(e: Exception){
+            Log.d(TAG, "Error creating feature manager.")
+        }
         getFeatures()
         subscribeToRunning()
         // get rules
