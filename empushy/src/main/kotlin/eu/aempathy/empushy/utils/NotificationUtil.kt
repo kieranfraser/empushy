@@ -44,6 +44,7 @@ object NotificationUtil {
                                        features: List<Feature>) {
 
         val n = sbn.notification
+
         notification.id = sbn.postTime.toString()
         notification.notifyId = sbn.id
 
@@ -201,21 +202,29 @@ object NotificationUtil {
         return text
     }
 
-    fun createNotificationOpenIntent(context: Context, packageName: String): PendingIntent {
+    fun createOpenAppIntent(context: Context, packageName: String): Intent {
+
         var intent = context.packageManager.getLaunchIntentForPackage(packageName)
         if (intent != null) {
             // We found the activity now start the activity
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            return PendingIntent.getActivity(context, 0,
-                    intent, 0)
+            return intent
         } else {
             // Bring user to the market or let them choose an app?
             intent = Intent(Intent.ACTION_VIEW)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             intent.data = Uri.parse("market://details?id=$packageName")
-            return PendingIntent.getActivity(context, 0,
-                    intent, 0)
+            return intent
         }
+    }
+
+    fun createNotificationOpenIntent(context: Context, nId: Int, id: String, appId: String): PendingIntent{
+        val myService = Intent(context, EmpushyNotificationService::class.java)
+        myService.putExtra("notification", id)
+        myService.putExtra("package", appId)
+        myService.setAction(Constants.ACTION.OPEN_ACTION);
+        return PendingIntent.getService(context, nId,
+                myService, PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     fun createNotificationRemoveIntent(context: Context, nId: Int, id: String): PendingIntent{

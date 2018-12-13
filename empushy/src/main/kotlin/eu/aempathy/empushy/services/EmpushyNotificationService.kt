@@ -103,7 +103,13 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
         else if(intent.action.equals( Constants.ACTION.REMOVAL_ACTION)){
             val notificationId = intent.getStringExtra("notification")
-            notificationRemoval(notificationId)
+            notificationRemoval(notificationId, false)
+        }
+        else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
+            val notificationId = intent.getStringExtra("notification")
+            val packageId = intent.getStringExtra("package")
+            notificationRemoval(notificationId, true)
+            startActivity(NotificationUtil.createOpenAppIntent(applicationContext, packageId))
         }
         else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
             val notification = intent.getSerializableExtra("notification") as EmpushyNotification
@@ -147,7 +153,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
     }
 
-    private fun notificationRemoval(id: String?){
+    private fun notificationRemoval(id: String?, opened: Boolean){
         Log.i(TAG, "Notification Removed")
         if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
             val currentUser = authInstance?.currentUser
@@ -162,13 +168,19 @@ class EmpushyNotificationService : NotificationListenerService() {
                         val activeNotification = foundNotifications[0]
                         NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
                                 featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
+
+                        if(opened)
+                            activeNotification.clicked = true
+
                         ref?.child("notifications")?.child(currentUser.uid?:"none")?.child("mobile")?.child(activeNotification.id?:"none")?.removeValue()
                         ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
                         if (activeList != null)
                             activeList!!.remove(activeNotification)
+                        val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        mNotifyManager.cancel(activeNotification.empushyNotifyId?:-1)
                     }
                 //consolidateActiveList(currentUser.uid)
-                updateEmpushyNotification(activeList!!)
+                //updateEmpushyNotification(activeList!!)
             }
         }
     }
@@ -202,8 +214,8 @@ class EmpushyNotificationService : NotificationListenerService() {
         } else {
             val expandedView = RemoteViews(packageName, R.layout.notification_expanded)
             val collapsedView = RemoteViews(packageName, R.layout.notification_collapsed)
-            var activeNum = 0
             val hiddenNum = numHiddenItems
+            var activeNum = 0
 
             for(item in items) {
 
@@ -277,12 +289,12 @@ class EmpushyNotificationService : NotificationListenerService() {
         val intent = PendingIntent.getActivity(applicationContext, 0,
                 notificationIntent, 0)
 
-        var activeNum = 0
-        var notificationList = arrayListOf<Notification>()
+        val notificationList = arrayListOf<Notification>()
 
         var nId = 1 // so each Pending Intent is different per Notification!
         for(empushyNotification in activeList?: arrayListOf()) {
             Log.d(TAG, "create id: "+empushyNotification.id)
+            empushyNotification.empushyNotifyId = nId
             //hiddenNum+=item.hidden?.size?:0
             try {
                 val icon = applicationContext.packageManager.getApplicationIcon(empushyNotification.app)
@@ -290,14 +302,15 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val canvas = Canvas(bitmap)
                 icon.setBounds(0, 0, canvas.getWidth(), canvas.getHeight())
                 icon.draw(canvas)
+
                 val newNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_empushy)
                         .setLargeIcon(bitmap)
                         .setContentTitle(empushyNotification.appName) // App name
                         .setContentText(empushyNotification.id) // Text of notification
                         .setGroup(GROUP_KEY_EMPUSHY)
-                        .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext,
-                                empushyNotification.app?:packageName))
+                        .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext, nId,
+                                empushyNotification.id?:"", empushyNotification.app?:packageName))
                         .setDeleteIntent(NotificationUtil.createNotificationRemoveIntent(applicationContext, nId,
                                 empushyNotification.id?:""))
                         .setStyle(NotificationCompat.BigTextStyle()
@@ -313,14 +326,14 @@ class EmpushyNotificationService : NotificationListenerService() {
         val pre24SummaryNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
                 .setContentTitle("No notifications need your attention.")
                 //set content text to support devices running API level < 24
-                .setContentText(activeNum.toString()+ " notifications")
+                .setContentText("0 notifications")
                 .setSmallIcon(R.mipmap.ic_empushy)
                 .setContentIntent(intent)
                 .setColor(ContextCompat.getColor(applicationContext, R.color.colorPrimary))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 //build summary info into InboxStyle template
                 .setStyle(NotificationCompat.InboxStyle()
-                        .setSummaryText(activeNum.toString()+" need attention"))
+                        .setSummaryText("0 need attention"))
                 //specify which group this notification belongs to
                 .setGroup(GROUP_KEY_EMPUSHY)
                 //set this notification as the summary for the group
@@ -506,7 +519,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     notificationList.add(activeNotification ?: notification)
                     val result = LearnUtils.deliverNotificationNow(notificationList, currentUser!!.uid)
                     var deliver = false
-                    if(result.size>0)
+                    if(result.size>0)       
                         deliver = result.get(0)
 
                     if (activeNotification != null) {
