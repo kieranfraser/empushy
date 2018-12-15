@@ -148,7 +148,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     }
                 }
                 //consolidateActiveList(currentUser.uid)
-                updateEmpushyNotification(activeList!!)
+                updateEmpushyNotification(activeList!!, activeNotification!!, 3)
             }
         }
     }
@@ -281,6 +281,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
         val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createChannel(mNotifyManager)
+        mNotifyManager.cancelAll()
 
         val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
@@ -291,7 +292,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
         val notificationList = arrayListOf<Notification>()
 
-        var nId = 1 // so each Pending Intent is different per Notification!
+        var nId = EMPUSHY_NOTIFICATION_ID+1 // so each Pending Intent is different per Notification!
         for(empushyNotification in activeList?: arrayListOf()) {
             Log.d(TAG, "create id: "+empushyNotification.id)
             empushyNotification.empushyNotifyId = nId
@@ -307,7 +308,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                         .setSmallIcon(R.mipmap.ic_empushy)
                         .setLargeIcon(bitmap)
                         .setContentTitle(empushyNotification.appName) // App name
-                        .setContentText(empushyNotification.id) // Text of notification
+                        .setContentText(empushyNotification.ticker) // Text of notification
                         .setGroup(GROUP_KEY_EMPUSHY)
                         .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext, nId,
                                 empushyNotification.id?:"", empushyNotification.app?:packageName))
@@ -342,7 +343,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
         //startForeground(EMPUSHY_NOTIFICATION_ID, pre24SummaryNotification)
         NotificationManagerCompat.from(applicationContext).apply {
-            var id = 1
+            var id = EMPUSHY_NOTIFICATION_ID+1
             for(notification in notificationList) {
                 notify(id, notification)
                 id++
@@ -512,6 +513,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 try {
                     NotificationUtil.extractNotificationPostedValue(notification, sbn, context!!,
                             featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
+
                     val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName)
 
                     // Check if notification should be cached or not
@@ -522,10 +524,12 @@ class EmpushyNotificationService : NotificationListenerService() {
                     if(result.size>0)       
                         deliver = result.get(0)
 
+                    var scenario = 1
                     if (activeNotification != null) {
                         activeList?.remove(activeNotification)
                         ref?.child("notifications")?.child(currentUser.uid)?.child("mobile")?.child(activeNotification.id
                                 ?: "none")?.removeValue()
+                        scenario = 2
                     }
                     if (activeList != null) {
                         notification.hidden = !deliver
@@ -535,7 +539,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     ref!!.child("notifications").child(currentUser.uid).child("mobile").child(sbn.postTime.toString()).setValue(notification)
                     // update notification
                     // publishProgress(n) - on progress update
-                    service!!.updateEmpushyNotification(activeList?: arrayListOf())
+                    service!!.updateEmpushyNotification(activeList?: arrayListOf(), notification, scenario)
                     Log.d(TAG, activeList.toString())
 
 
@@ -598,11 +602,96 @@ class EmpushyNotificationService : NotificationListenerService() {
         }*/
     }
 
-    fun updateEmpushyNotification(newList: ArrayList<EmpushyNotification>){
+    fun updateEmpushyNotification(newList: ArrayList<EmpushyNotification>, notification: EmpushyNotification, scenario: Int){
         Log.d(TAG, "Updating notification")
         val appItems = DataUtils.notificationAnalysis(newList)
         val numHiddenItems = newList.filter { n -> n.hidden == true }.size
+        // update the notification bar e.g. remove or update notification using empushyNotifyId
+        // instead removing everything and pushing active list.
+        //updateStatusBarNotifications(notification, scenario)
         startNotificationService(appItems, numHiddenItems, true)
+    }
+
+    /**
+     *
+     */
+    fun updateStatusBarNotifications(notification: EmpushyNotification, scenario: Int){
+
+        val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+
+        val GROUP_KEY_EMPUSHY = "eu.aempathy.EMPUSHY"
+
+        when(scenario){
+            1 -> {
+                if(notification.empushyNotifyId!=null) {
+                    // new notification
+                    val empushyNotifyId = (activeList?.size?.plus(1)?.plus(EMPUSHY_NOTIFICATION_ID))
+                    notification.empushyNotifyId = empushyNotifyId
+
+                    val icon = applicationContext.packageManager.getApplicationIcon(notification.app)
+                    val bitmap = Bitmap.createBitmap(icon.getIntrinsicWidth(), icon.getIntrinsicHeight(), Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    icon.setBounds(0, 0, canvas.getWidth(), canvas.getHeight())
+                    icon.draw(canvas)
+
+                    val newNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
+                            .setSmallIcon(R.mipmap.ic_empushy)
+                            .setLargeIcon(bitmap)
+                            .setContentTitle(notification.appName) // App name
+                            .setContentText(notification.ticker) // Text of notification
+                            .setGroup(GROUP_KEY_EMPUSHY)
+                            .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext,
+                                    notification.empushyNotifyId!!,
+                                    notification.id ?: "", notification.app ?: packageName))
+                            .setDeleteIntent(NotificationUtil.createNotificationRemoveIntent(applicationContext,
+                                    notification.empushyNotifyId!!,
+                                    notification.id ?: ""))
+                            .setStyle(NotificationCompat.BigTextStyle()
+                                    .bigText(NotificationUtil.extractUsefulText(notification)))
+                            .build()
+
+                    NotificationManagerCompat.from(applicationContext).apply {
+                        if (notification.empushyNotifyId != null)
+                            notify(notification.empushyNotifyId!!, newNotification)
+                    }
+                }
+            }
+            2 -> {
+                // updating current notification
+                if(notification.empushyNotifyId!=null) {
+                    val icon = applicationContext.packageManager.getApplicationIcon(notification.app)
+                    val bitmap = Bitmap.createBitmap(icon.getIntrinsicWidth(), icon.getIntrinsicHeight(), Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    icon.setBounds(0, 0, canvas.getWidth(), canvas.getHeight())
+                    icon.draw(canvas)
+
+                    val newNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
+                            .setSmallIcon(R.mipmap.ic_empushy)
+                            .setLargeIcon(bitmap)
+                            .setContentTitle(notification.appName) // App name
+                            .setContentText(notification.ticker) // Text of notification
+                            .setGroup(GROUP_KEY_EMPUSHY)
+                            .setContentIntent(NotificationUtil.createNotificationOpenIntent(applicationContext,
+                                    notification.empushyNotifyId!!,
+                                    notification.id ?: "", notification.app ?: packageName))
+                            .setDeleteIntent(NotificationUtil.createNotificationRemoveIntent(applicationContext,
+                                    notification.empushyNotifyId!!,
+                                    notification.id ?: ""))
+                            .setStyle(NotificationCompat.BigTextStyle()
+                                    .bigText(NotificationUtil.extractUsefulText(notification)))
+                            .build()
+
+                    NotificationManagerCompat.from(applicationContext).apply {
+                        notify(notification.empushyNotifyId!!, newNotification)
+                    }
+                }
+            }
+            else -> {
+                // removing current notification
+                mNotifyManager.cancel(notification.empushyNotifyId?:-1)
+            }
+        }
     }
 
     private fun consolidateActiveList(userId: String){
@@ -656,9 +745,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                         }
                     }
                     for (notification in toRemove)
-                        activeList?.remove(notification)
-
-                    updateEmpushyNotification(activeList!!)
+                        //activeList?.remove(notification)
+                        updateEmpushyNotification(activeList!!,notification, 3 )
                 }
             }
         }
@@ -669,57 +757,6 @@ class EmpushyNotificationService : NotificationListenerService() {
     private fun subscribeToRunning(){
         runningRef = ref?.child("users")?.child(authInstance?.currentUser?.uid?:"none")?.child("running")
         runningListener = runningRef?.addChildEventListener(runningReadListener)
-    }
-
-    /**
-     * change to offline removal via Intent.. so notification syncs when offline.
-     */
-    private fun subscribeToRemovals(){
-        Log.d(TAG, "Subbed to removals")
-        removalActiveRef = ref?.child("notifications")?.child(authInstance?.currentUser?.uid?:"none")?.child("mobile")
-        removalActiveListener = removalActiveRef?.addChildEventListener(removalListener)
-        removalCacheRef = ref?.child("cached/notifications")?.child(authInstance?.currentUser?.uid?:"none")?.child("mobile")
-        removalCacheListener = removalCacheRef?.addChildEventListener(removalListener)
-    }
-
-    var removalListener: ChildEventListener = object : ChildEventListener {
-
-        override fun onChildRemoved(snapshot: DataSnapshot) {
-            if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
-                val currentUser = authInstance?.currentUser
-                if (currentUser != null) {
-                    Log.i(TAG, "Notification Removed")
-                    Log.d(TAG, snapshot.toString())
-                    val n = snapshot.getValue(EmpushyNotification::class.java)
-
-                    val activeNotification = NotificationUtil.isInList(activeList, n?.notifyId?:0, n?.app?:"")
-                    if (activeNotification != null) {
-                        NotificationUtil.extractNotificationRemovedValue(activeNotification, applicationContext,
-                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
-                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(activeNotification.id!!).setValue(activeNotification)
-                        if (activeList != null)
-                            activeList!!.remove(activeNotification)
-                    } else {
-                        val notification = n
-                        NotificationUtil.extractNotificationRemovedValue(notification?: EmpushyNotification(), applicationContext,
-                                featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
-                        ref!!.child("archive/notifications").child(currentUser.uid).child("mobile").child(notification?.id!!).setValue(notification)
-                    }
-
-                    consolidateActiveList(currentUser.uid)
-                    // update notification
-                    updateEmpushyNotification(activeList!!)
-                }
-            }
-        }
-
-        override fun onChildAdded(p0: DataSnapshot, p1: String?) {}
-
-        override fun onChildChanged(p0: DataSnapshot, p1: String?) {}
-
-        override fun onChildMoved(p0: DataSnapshot, p1: String?) {}
-
-        override fun onCancelled(databaseError: DatabaseError) {}
     }
 
     var runningReadListener: ChildEventListener = object : ChildEventListener {
