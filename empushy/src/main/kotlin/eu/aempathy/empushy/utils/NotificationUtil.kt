@@ -5,15 +5,16 @@ import android.app.PendingIntent
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.net.Uri
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.data.Feature
-import java.util.*
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
 import eu.aempathy.empushy.services.EmpushyNotificationService
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 /**
@@ -121,15 +122,36 @@ object NotificationUtil {
     }
 
     fun isInList(activeNotifications: ArrayList<EmpushyNotification>?,
-                 notifyId: Int, appPackage: String): EmpushyNotification? {
+                 notifyId: Int, appPackage: String, extraText: String): EmpushyNotification? {
         if (activeNotifications != null) {
             for (n in activeNotifications) {
-                if (n.notifyId == notifyId && n.app == appPackage) {
+                if ((n.notifyId == notifyId && n.app == appPackage) || (n.app == appPackage && n.extraText == extraText)) {
                     return n
                 }
             }
         }
         return null
+    }
+
+    fun updateEmPushyNotifyId(activeNotifications: MutableList<EmpushyNotification>?, notification: EmpushyNotification?): MutableList<EmpushyNotification>? {
+        if (activeNotifications != null && notification != null) {
+            for (n in activeNotifications) {
+                if ((n.notifyId == notification.notifyId && n.app == notification.app) || (n.app == notification.app && n.extraText == notification.extraText)) {
+                    Log.d(TAG, "Updating notify id "+notification.empushyNotifyId)
+                    n.empushyNotifyId = notification.empushyNotifyId
+                }
+            }
+        }
+        return activeNotifications
+    }
+
+    fun removeNotificationById(activeNotifications: MutableList<EmpushyNotification>?, id: String): MutableList<EmpushyNotification>? {
+        if (activeNotifications != null) {
+            val found = activeNotifications.filter { n -> n.id == id }.singleOrNull()
+            if(found!=null)
+                activeNotifications.remove(found)
+        }
+        return activeNotifications
     }
 
     private fun convertCharSequenceArrayToString(charSeq: Array<CharSequence>?): String {
