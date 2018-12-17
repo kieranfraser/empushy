@@ -122,10 +122,10 @@ object NotificationUtil {
     }
 
     fun isInList(activeNotifications: ArrayList<EmpushyNotification>?,
-                 notifyId: Int, appPackage: String, extraText: String): EmpushyNotification? {
+                 notifyId: Int, appPackage: String, category: String): EmpushyNotification? {
         if (activeNotifications != null) {
             for (n in activeNotifications) {
-                if ((n.notifyId == notifyId && n.app == appPackage) || (n.app == appPackage && n.extraText == extraText)) {
+                if ((n.app == appPackage && n.notifyId == notifyId) || (n.app == appPackage && n.category == category)) {
                     return n
                 }
             }
@@ -136,7 +136,8 @@ object NotificationUtil {
     fun updateEmPushyNotifyId(activeNotifications: MutableList<EmpushyNotification>?, notification: EmpushyNotification?): MutableList<EmpushyNotification>? {
         if (activeNotifications != null && notification != null) {
             for (n in activeNotifications) {
-                if ((n.notifyId == notification.notifyId && n.app == notification.app) || (n.app == notification.app && n.extraText == notification.extraText)) {
+                if ((n.app == notification.app && n.notifyId == notification.notifyId) ||
+                        (n.app == notification.app && n.category == notification.category)) {
                     Log.d(TAG, "Updating notify id "+notification.empushyNotifyId)
                     n.empushyNotifyId = notification.empushyNotifyId
                 }
