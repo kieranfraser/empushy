@@ -37,38 +37,6 @@
                 android:textSize="18dp"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-
-            <RadioGroup
-                android:id="@+id/rg_app_summary_detail"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="5dp">
-
-                <RadioButton
-                    android:id="@+id/rb_app_summary_detail_now"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="10dp"
-                    android:text="Now"
-                    android:checked="true"
-                    android:gravity="center"
-                    android:textColor="@color/white" />
-
-                <RadioButton
-                    android:id="@+id/rb_app_summary_detail_later"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Later"
-                    android:textColor="@color/white"/>
-            </RadioGroup>
-        </LinearLayout>
-
-
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">

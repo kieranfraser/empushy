@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.IBinder
@@ -29,6 +30,12 @@ import eu.aempathy.empushy.data.*
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.utils.*
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
+import org.deeplearning4j.models.word2vec.Word2Vec
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -68,7 +75,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     private var removalCacheRef: DatabaseReference ?= null
     private var removalCacheListener: ChildEventListener ?= null
 
-    private var activeList: ArrayList<EmpushyNotification>? = null
+    private var activeList: MutableList<EmpushyNotification>? = null
     private var cachedList: ArrayList<EmpushyNotification>? = null
 
     override fun onTaskRemoved(rootIntent: Intent) {
@@ -105,6 +112,13 @@ class EmpushyNotificationService : NotificationListenerService() {
             val notificationId = intent.getStringExtra("notification")
             notificationRemoval(notificationId, false)
         }
+        else if(intent.action.equals( Constants.ACTION.REMOVAL_MUL_ACTION)){
+            val appItem = intent.getSerializableExtra("appItem") as AppSummaryItem
+            val hidden = intent.getBooleanExtra("hidden", false)
+            for(app in appItem.active?: arrayListOf())
+                if(app.hidden == hidden)
+                    notificationRemoval(app.id, false)
+        }
         else if(intent.action.equals( Constants.ACTION.OPEN_ACTION)){
             val notificationId = intent.getStringExtra("notification")
             val packageId = intent.getStringExtra("package")
@@ -118,9 +132,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         if(StateUtils.isNetworkAvailable(applicationContext) && authInstance!=null) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null) {
-                Log.d(TAG, "Finding opened notification: ")
-                Log.d(TAG, id)
-                Log.d(TAG, activeList.toString())
                 val foundNotifications: List<EmpushyNotification>? = activeList?.filter { n -> n.id == id }
 
                     if (foundNotifications != null && !foundNotifications.isEmpty()) {
@@ -139,6 +150,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                             activeList!!.remove(activeNotification)
 
                         updateEmpushyNotification(activeList!!, activeNotification, false)
+
                         /*val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         mNotifyManager.cancel(activeNotification.empushyNotifyId?:-1)*/
                     }
@@ -255,7 +267,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         val intent = PendingIntent.getActivity(applicationContext, 0,
                 notificationIntent, 0)
 
-        val notificationList = arrayListOf<Notification>()
+        val notificationList = mutableListOf<Notification>()
         var activeNum = 0
 
         val pre24SummaryNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
@@ -311,7 +323,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         firebaseApp = FirebaseApp.getInstance("empushy")
         authInstance = FirebaseAuth.getInstance(firebaseApp!!)
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
-        activeList = ArrayList()
+        activeList = mutableListOf()
         cachedList = ArrayList()
 
         try {
@@ -322,6 +334,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         getFeatures()
         subscribeToRunning()
         // get rules
+        nlp();
     }
 
     private fun getFeatures(){
@@ -391,13 +404,14 @@ class EmpushyNotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        Log.i(TAG, "Notification Posted! from " + sbn.packageName)
+        Log.i(TAG, "Notification Posted! from " + sbn.packageName + " "+sbn.id)
+        Log.d(TAG, "Current active list on posting: "+activeList)
         if (authInstance != null && runningService) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
                 try {
                     val taskPosted = NotificationPostedTask(applicationContext, activeList
-                            ?: arrayListOf(),
+                            ?: mutableListOf(),
                             featureManager!!, authInstance!!, ref!!, this)
                     taskPosted.execute(*arrayOf(sbn))
                     cancelNotification(sbn.key)
@@ -407,13 +421,13 @@ class EmpushyNotificationService : NotificationListenerService() {
         // update notification
     }
 
-    private class NotificationPostedTask(context: Context, activeList: ArrayList<EmpushyNotification>, featureManager: FeatureManager,
+    private class NotificationPostedTask(context: Context, activeList: MutableList<EmpushyNotification>, featureManager: FeatureManager,
                                          authInstance: FirebaseAuth, ref: DatabaseReference,
                                          service: EmpushyNotificationService) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
 
         private val TAG = EMPUSHY_TAG + NotificationPostedTask::class.java.simpleName
         private val contextRef: WeakReference<Context>
-        private val activeRef: WeakReference<ArrayList<EmpushyNotification>>
+        private val activeRef: WeakReference<MutableList<EmpushyNotification>>
         private val authRef: WeakReference<FirebaseAuth>
         private val refRef: WeakReference<DatabaseReference>
         private val serviceRef: WeakReference<EmpushyNotificationService>
@@ -431,7 +445,6 @@ class EmpushyNotificationService : NotificationListenerService() {
         override fun onPreExecute() {}
 
         override fun doInBackground(vararg sbns: StatusBarNotification): String? {
-            Log.d(TAG, "Notification posted background task.")
             val authInstance = authRef.get()
             if (authInstance != null) {
                 val currentUser = authInstance.currentUser
@@ -449,10 +462,10 @@ class EmpushyNotificationService : NotificationListenerService() {
                             featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
 
                     val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName,
-                            sbn.notification.category)
+                            sbn.notification.tickerText.toString())
 
                     // Check if notification should be cached or not
-                    val notificationList = arrayListOf<EmpushyNotification>()
+                    val notificationList = mutableListOf<EmpushyNotification>()
                     notificationList.add(activeNotification ?: notification)
                     val result = LearnUtils.deliverNotificationNow(notificationList, currentUser!!.uid)
                     var deliver = false
@@ -460,24 +473,25 @@ class EmpushyNotificationService : NotificationListenerService() {
                         deliver = result.get(0)
 
                     if (activeNotification != null) {
-                        Log.d(TAG, "Found notification "+activeNotification.appName + "; "+activeNotification.id)
-                        Log.d(TAG, activeList.toString())
-                        service!!.updateEmpushyNotification(activeList?: arrayListOf(), activeNotification, false)
-                        activeList = ArrayList(NotificationUtil.removeNotificationById(activeList, activeNotification.id?:""))
+                        notification.previousText = activeNotification.previousText
+                        notification.previousText?.add(NotificationUtil.extractUsefulText(activeNotification))
+                        service!!.updateEmpushyNotification(activeList?: mutableListOf(), activeNotification, false)
+                        activeList = NotificationUtil.removeNotificationById(activeList, activeNotification.id?:"")
                         ref?.child("notifications")?.child(currentUser.uid)?.child("mobile")?.child(activeNotification.id
                                 ?: "none")?.removeValue()
-                        Log.d(TAG, activeList.toString())
+                    }
+                    else{
+
+                        Log.d(TAG, "Could not find "+sbn.id+" in active list: "+activeList)
                     }
                     if (activeList != null) {
                         notification.hidden = !deliver
                         activeList.add(notification)
-                        Log.d(TAG,"Here adding the notification.")
-                        Log.d(TAG, activeList.toString())
                     }
                     ref!!.child("notifications").child(currentUser.uid).child("mobile").child(sbn.postTime.toString()).setValue(notification)
                     // update notification
                     // publishProgress(n) - on progress update
-                    service!!.updateEmpushyNotification(activeList?: arrayListOf(), notification, true)
+                    service!!.updateEmpushyNotification(activeList?: mutableListOf(), notification, true)
 
 
                 } catch (e: Exception) {
@@ -501,7 +515,7 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
 
-        Log.i(TAG, "Notification Removed. App: " + sbn.packageName)
+        //Log.i(TAG, "Notification Removed. App: " + sbn.packageName)
         /*if (authInstance != null && !runningService) {
             val currentUser = authInstance!!.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
@@ -541,8 +555,8 @@ class EmpushyNotificationService : NotificationListenerService() {
         }*/
     }
 
-    fun updateEmpushyNotification(newList: ArrayList<EmpushyNotification>, notification: EmpushyNotification, add: Boolean){
-        Log.d(TAG, "Updating notification")
+    fun updateEmpushyNotification(newList: MutableList<EmpushyNotification>, notification: EmpushyNotification, add: Boolean){
+        //Log.d(TAG, "Updating notification")
         val appItems = DataUtils.notificationAnalysis(newList)
         val numHiddenItems = newList.filter { n -> n.hidden == true }.size
         // update the notification bar e.g. remove or update notification using empushyNotifyId
@@ -554,7 +568,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     /**
      *
      */
-    fun updateStatusBarNotifications(newList: ArrayList<EmpushyNotification>, notification: EmpushyNotification, add: Boolean){
+    fun updateStatusBarNotifications(newList: MutableList<EmpushyNotification>, notification: EmpushyNotification, add: Boolean){
 
         val mNotifyManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -569,7 +583,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             else
                 notification.empushyNotifyId = EMPUSHY_NOTIFICATION_ID + 1
 
-            activeList = ArrayList(NotificationUtil.updateEmPushyNotifyId(newList, notification))
+            activeList = NotificationUtil.updateEmPushyNotifyId(newList, notification)
 
 
             val icon = applicationContext.packageManager.getApplicationIcon(notification.app)
@@ -596,8 +610,6 @@ class EmpushyNotificationService : NotificationListenerService() {
 
             NotificationManagerCompat.from(applicationContext).apply {
                 if (notification.empushyNotifyId != null) {
-
-                    Log.d(TAG, "Adding the notification!! "+notification.id+" "+notification.empushyNotifyId)
                     notify(notification.empushyNotifyId!!, newNotification)
                 }
             }
@@ -605,11 +617,13 @@ class EmpushyNotificationService : NotificationListenerService() {
         }
         else {
             // removing current notification
-            Log.d(TAG, mNotifyManager.activeNotifications.size.toString())
-            Log.d(TAG, "Removing the notification!! "+notification.id+" "+notification.empushyNotifyId)
             mNotifyManager.cancel(notification.empushyNotifyId?:-1)
-            Log.d(TAG, mNotifyManager.activeNotifications.size.toString())
         }
+
+        var hiddenTotal = 0
+        val hiddenItems = activeList?.filter { n -> n.hidden==true }
+        if(hiddenItems!=null)
+            hiddenTotal = hiddenItems.size
 
         val notificationIntent = Intent(applicationContext, DetailActivity::class.java)
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
@@ -618,7 +632,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 notificationIntent, 0)
 
         val pre24SummaryNotification = NotificationCompat.Builder(applicationContext, ANDROID_CHANNEL_ID)
-                .setContentTitle("Nothing for now.")
+                .setContentTitle("Nothing for now. "+(if(hiddenTotal>0) "Some" else "Nothing")+" saved for later.")
                 //set content text to support devices running API level < 24
                 .setContentText("Press to open EmPushy")
                 .setSmallIcon(if(mNotifyManager.activeNotifications.size>1) R.mipmap.ic_empushy_green
@@ -665,7 +679,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val currentUser = authInstance?.currentUser
                 if (currentUser != null) {
                     Log.d(TAG, "Consolidating active list.")
-                    val newNotifications = ArrayList<EmpushyNotification>();
+                    val newNotifications = mutableListOf<EmpushyNotification>()
                     for (child in snapshot.children) {
                         val notification = child?.getValue(EmpushyNotification::class.java)
                         if (notification != null) {
@@ -673,7 +687,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                         }
                     }
                     for (notification: EmpushyNotification in newNotifications) {
-                        val foundList = activeList?.filter { n -> n.notifyId == notification.notifyId && n.app == notification.app }
+                        val foundList = activeList?.filter { n -> (n.app == notification.app) }
                         if (foundList == null || foundList.isEmpty())
                             ref?.child("notifications")?.child(currentUser.uid)?.child("mobile")?.child(notification.id
                                     ?: "none")?.removeValue()
@@ -681,7 +695,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                     val calendar = Calendar.getInstance()
                     val today = calendar.get(Calendar.DAY_OF_YEAR)
                     val toRemove = mutableListOf<EmpushyNotification>()
-                    for (notification in activeList ?: ArrayList()) {
+                    for (notification in activeList ?: mutableListOf()) {
                         calendar.timeInMillis = notification.time ?: 0
                         if (calendar.get(Calendar.DAY_OF_YEAR) != today) {
                             toRemove.add(notification)
@@ -730,5 +744,35 @@ class EmpushyNotificationService : NotificationListenerService() {
         runningService = false
         stopForeground(true)
         stopSelf()
+    }
+
+    private fun nlp(){
+        //val uri = Uri.parse("android.resource://eu.aempathy.empushy/raw/news_word_vector.txt")
+
+        val id = this.resources.getIdentifier("news_word_vector", "raw", this.packageName)
+        val file = File(this.getFilesDir().toString()+File.separator+"news_word_vector.txt")
+        try {
+            val inputStream = resources.openRawResource(id)
+            val fileOutputStream = FileOutputStream(file)
+
+            val buf = ByteArray(1024)
+            var len = inputStream.read(buf)
+            while(len > 0) {
+                fileOutputStream.write(buf,0,len);
+                len = inputStream.read(buf)
+            }
+
+            fileOutputStream.close();
+            inputStream.close();
+        } catch (e1: IOException) {}
+        val word2Vec = WordVectorSerializer.readWord2VecModel(file)
+        val vector = word2Vec.getWordVector("this")
+        Log.d(TAG, "My vector: "+Arrays.toString(vector))
+        val st = StringTokenizer("this is a test")
+        val tokens = mutableListOf<String>()
+        while (st.hasMoreTokens()) {
+            tokens.add(st.nextToken())
+        }
+        Log.d(TAG, tokens.toString())
     }
 }

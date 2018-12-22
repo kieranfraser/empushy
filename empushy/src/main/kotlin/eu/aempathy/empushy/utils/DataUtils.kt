@@ -67,7 +67,7 @@ class DataUtils {
                     (totalFound.size - totalAccepted).toFloat())
         }
 
-        fun notificationAnalysis(notifications: ArrayList<EmpushyNotification>): ArrayList<AppSummaryItem>{
+        fun notificationAnalysis(notifications: MutableList<EmpushyNotification>): ArrayList<AppSummaryItem>{
             // separate into app
             val activeAppItems = ArrayList<AppSummaryItem>()
             for(notification in notifications){

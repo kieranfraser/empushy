@@ -104,9 +104,9 @@ class DetailActivity : AppCompatActivity() {
                 val appItem = appSummaryItems[viewHolder!!.adapterPosition]
                 removeAppSummaryItem(appItem)
                 val myService = Intent(applicationContext, EmpushyNotificationService::class.java)
-                myService.putExtra("notification", appItem)
-                myService.putExtra("forNow", forNow)
-                myService.setAction(Constants.ACTION.REMOVAL_ACTION);
+                myService.putExtra("appItem", appItem)
+                myService.putExtra("hidden", !forNow)
+                myService.setAction(Constants.ACTION.REMOVAL_MUL_ACTION);
                 startService(myService)
             }
         }

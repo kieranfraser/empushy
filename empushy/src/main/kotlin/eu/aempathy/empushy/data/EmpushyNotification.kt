@@ -34,7 +34,8 @@ data class EmpushyNotification(
         @SerializedName("clicked") var clicked: Boolean ?= false,
         @SerializedName("removedTime") var removedTime: Long ?= NOTIFICATION_LONG_DEFAULT,
         @SerializedName("placeCategories") var placeCategories: ArrayList<Int> ?= arrayListOf(),
-        @SerializedName("hidden") var hidden: Boolean ?= false
+        @SerializedName("hidden") var hidden: Boolean ?= false,
+        @SerializedName("previousText") var previousText: ArrayList<String> ?= arrayListOf()
 
 ) : Serializable{
 

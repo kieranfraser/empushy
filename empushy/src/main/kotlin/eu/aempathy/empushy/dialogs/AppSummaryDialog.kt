@@ -56,10 +56,6 @@ class AppSummaryDialog: DialogFragment(){
         val iconView: ImageView = view.findViewById(R.id.iv_app_summary_icon)
         val titleView: TextView = view.findViewById(R.id.tv_app_summary_app)
 
-
-        val radioGroup: RadioGroup = view.findViewById(R.id.rg_app_summary_detail)
-        val rbNow: RadioButton = view.findViewById(R.id.rb_app_summary_detail_now)
-
         try {
             val icon = context.packageManager.getApplicationIcon(summaryItem.app?.trim())
             iconView.setImageDrawable(icon)
@@ -71,19 +67,9 @@ class AppSummaryDialog: DialogFragment(){
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.hasFixedSize()
 
-        if(rbNow.isChecked)
-            recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(),
-                    {notification: EmpushyNotification -> notificationItemClicked(notification) }, false)
+        recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(),
+                {notification: EmpushyNotification -> notificationItemClicked(notification) }, false)
 
-        // Create the AlertDialog object and return it
-        radioGroup.setOnCheckedChangeListener(object: RadioGroup.OnCheckedChangeListener{
-            override fun onCheckedChanged(p0: RadioGroup?, p1: Int) {
-                Log.d(TAG, "Changed checked")
-                if(rbNow.isChecked)
-                    recyclerView.adapter = NotificationSummaryAdapter(summaryItem.active?.toMutableList()?: mutableListOf(),
-                            {notification: EmpushyNotification -> notificationItemClicked(notification) }, false)
-            }
-        })
 
         val btOkay: Button = view.findViewById(R.id.bt_dialog_app_summary_detail)
         btOkay.setOnClickListener(View.OnClickListener {
@@ -94,29 +80,10 @@ class AppSummaryDialog: DialogFragment(){
     }
 
     fun notificationItemClicked(notification: EmpushyNotification){
-        // Notification opened - update
-        removeNotification(notification)
-
         val myService = Intent(context, EmpushyNotificationService::class.java)
-        myService.putExtra("notification", notification)
+        myService.putExtra("notification", notification.id)
+        myService.putExtra("package", notification.app)
         myService.setAction(Constants.ACTION.OPEN_ACTION);
         context.startService(myService)
-
-        val appIntent = context.packageManager.getLaunchIntentForPackage(notification.app)
-        appIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-        startActivity(appIntent)
-        this@AppSummaryDialog.dismissAllowingStateLoss()
     }
-
-    private fun removeNotification(n: EmpushyNotification){
-        val app = Empushy.initialise(context)
-        val ref = FirebaseDatabase.getInstance(app).reference
-        val uid = FirebaseAuth.getInstance(app).currentUser?.uid
-        ref.child("notifications").child(uid?:"none").child(MOBILE).child(n.id?:"none").removeValue()
-    }
-
-    /*@OnClick(R.id.rv_summary_dialog_notifications,R.id.iv_app_summary_icon,R.id.tv_app_summary_item_app)
-    fun toggleDialog(view: View) {
-        this@AppSummaryDialog.dismissAllowingStateLoss()
-    }*/
 }
