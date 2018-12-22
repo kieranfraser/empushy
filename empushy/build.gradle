@@ -57,6 +57,7 @@ dependencies {
     api 'com.github.PhilJay:MPAndroidChart:v3.0.3'
 
     // NLP dependencies
+
     // DL4J
     api (group: 'org.deeplearning4j', name: 'deeplearning4j-core', version: '1.0.0-beta3') {
         exclude group: 'org.bytedeco.javacpp-presets', module: 'opencv-platform'
@@ -88,5 +89,6 @@ dependencies {
     api group: 'org.bytedeco.javacpp-presets', name: 'leptonica', version: '1.76.0-1.4.2', classifier: "android-arm64"
     api group: 'org.bytedeco.javacpp-presets', name: 'leptonica', version: '1.76.0-1.4.2', classifier: "android-x86"
     api group: 'org.bytedeco.javacpp-presets', name: 'leptonica', version: '1.76.0-1.4.2', classifier: "android-x86_64"
+
 }
 apply plugin: 'kotlin-android-extensions'

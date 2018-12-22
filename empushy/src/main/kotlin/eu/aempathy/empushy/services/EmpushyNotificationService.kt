@@ -7,8 +7,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.Icon
-import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.IBinder
@@ -31,11 +29,9 @@ import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.utils.*
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
-import org.deeplearning4j.models.word2vec.Word2Vec
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -334,7 +330,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         getFeatures()
         subscribeToRunning()
         // get rules
-        nlp();
+        nlp()
     }
 
     private fun getFeatures(){
