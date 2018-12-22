@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
 import android.os.IBinder
@@ -29,6 +30,9 @@ import eu.aempathy.empushy.data.*
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.utils.*
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
+import org.deeplearning4j.models.word2vec.Word2Vec
+import java.io.File
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -322,6 +326,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         getFeatures()
         subscribeToRunning()
         // get rules
+        nlp()
     }
 
     private fun getFeatures(){
@@ -730,5 +735,12 @@ class EmpushyNotificationService : NotificationListenerService() {
         runningService = false
         stopForeground(true)
         stopSelf()
+    }
+
+    private fun nlp(){
+        val uri = Uri.parse("android.resource://eu.aempathy.empushy/raw/NewsWordVector.txt")
+        val word2Vec = WordVectorSerializer.readWord2VecModel(uri.path)
+        val vector = word2Vec.getWordVector("this")
+        Log.d(TAG, "My vector: "+Arrays.toString(vector))
     }
 }

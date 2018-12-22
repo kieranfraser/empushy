@@ -44,5 +44,12 @@ dependencies {
     api 'com.android.support:appcompat-v7:26.1.0'
     api 'com.google.code.gson:gson:2.8.2'
     api 'com.github.PhilJay:MPAndroidChart:v3.0.3'
+
+    // NLP dependencies
+    api 'org.deeplearning4j:deeplearning4j-core:1.0.0-beta3'
+    api 'org.nd4j:nd4j-native-platform:1.0.0-beta3'
+    api 'org.deeplearning4j:deeplearning4j-nlp:1.0.0-beta3'
+    api 'org.datavec:datavec-data-nlp:1.0.0-beta3'
+
 }
 apply plugin: 'kotlin-android-extensions'
