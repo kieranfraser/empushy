@@ -10,11 +10,10 @@ import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.aempathy.NLPAndroid.TopicClassifier
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.data.Feature
 import eu.aempathy.empushy.services.EmpushyNotificationService
-import java.util.*
-import kotlin.collections.ArrayList
 
 
 /**
@@ -42,7 +41,7 @@ object NotificationUtil {
     }
 
     fun extractNotificationPostedValue(notification: EmpushyNotification, sbn: StatusBarNotification, context: Context,
-                                       features: List<Feature>) {
+                                       features: List<Feature>, topicClassifier: TopicClassifier?) {
 
         val n = sbn.notification
 
@@ -112,6 +111,7 @@ object NotificationUtil {
                 else
                     ""
             }
+            notification.subject = topicClassifier?.classifyTopic(extractUsefulText(notification))
         }
 
         feature = features.filter { f -> f.name == "category" }

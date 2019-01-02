@@ -19,6 +19,7 @@ import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
+import com.aempathy.NLPAndroid.TopicClassifier
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -28,10 +29,6 @@ import eu.aempathy.empushy.data.*
 import eu.aempathy.empushy.init.Empushy
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
 import eu.aempathy.empushy.utils.*
-import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -61,6 +58,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     var featureRef: DatabaseReference ?= null
     var featureManager: FeatureManager?= null
     var featureListener: ValueEventListener ?= null
+    var topicClassifier: TopicClassifier?= null
 
     private var runningRef: DatabaseReference ?= null
     private var runningListener: ChildEventListener ?= null
@@ -321,16 +319,18 @@ class EmpushyNotificationService : NotificationListenerService() {
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
         activeList = mutableListOf()
         cachedList = ArrayList()
+        topicClassifier = TopicClassifier(this)
 
         try {
             featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
+
         }catch(e: Exception){
             Log.d(TAG, "Error creating feature manager.")
         }
+
+
         getFeatures()
         subscribeToRunning()
-        // get rules
-        nlp()
     }
 
     private fun getFeatures(){
@@ -408,7 +408,7 @@ class EmpushyNotificationService : NotificationListenerService() {
                 try {
                     val taskPosted = NotificationPostedTask(applicationContext, activeList
                             ?: mutableListOf(),
-                            featureManager!!, authInstance!!, ref!!, this)
+                            featureManager!!, authInstance!!, ref!!, this, topicClassifier?:TopicClassifier(this))
                     taskPosted.execute(*arrayOf(sbn))
                     cancelNotification(sbn.key)
                 }catch (e: Exception){Log.d(TAG, "Exception starting posted background task: "+e.toString())}
@@ -419,7 +419,8 @@ class EmpushyNotificationService : NotificationListenerService() {
 
     private class NotificationPostedTask(context: Context, activeList: MutableList<EmpushyNotification>, featureManager: FeatureManager,
                                          authInstance: FirebaseAuth, ref: DatabaseReference,
-                                         service: EmpushyNotificationService) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
+                                         service: EmpushyNotificationService,
+                                         topicClassifier: TopicClassifier) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
 
         private val TAG = EMPUSHY_TAG + NotificationPostedTask::class.java.simpleName
         private val contextRef: WeakReference<Context>
@@ -428,6 +429,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         private val refRef: WeakReference<DatabaseReference>
         private val serviceRef: WeakReference<EmpushyNotificationService>
         private val featureManagerRef: WeakReference<FeatureManager>
+        private val topicClassifierRef: WeakReference<TopicClassifier>
 
         init {
             this.contextRef = WeakReference(context)
@@ -436,6 +438,7 @@ class EmpushyNotificationService : NotificationListenerService() {
             this.authRef = WeakReference(authInstance)
             this.refRef = WeakReference(ref)
             this.serviceRef = WeakReference(service)
+            this.topicClassifierRef = WeakReference(topicClassifier)
         }
 
         override fun onPreExecute() {}
@@ -449,13 +452,15 @@ class EmpushyNotificationService : NotificationListenerService() {
                 val ref = refRef.get()
                 val service = serviceRef.get()
                 val featureManager = featureManagerRef.get()
+                val topicClassifier = topicClassifierRef.get()
 
                 val sbn = sbns[0]
 
                 val notification = EmpushyNotification()
                 try {
                     NotificationUtil.extractNotificationPostedValue(notification, sbn, context!!,
-                            featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf())
+                            featureManager?.features?.filter { f -> f.category == FEATURE_CAT_NOTIFICATION }?: listOf(),
+                            topicClassifier)
 
                     val activeNotification = NotificationUtil.isInList(activeList, sbn.id, sbn.packageName,
                             sbn.notification.tickerText.toString())
@@ -740,35 +745,5 @@ class EmpushyNotificationService : NotificationListenerService() {
         runningService = false
         stopForeground(true)
         stopSelf()
-    }
-
-    private fun nlp(){
-        //val uri = Uri.parse("android.resource://eu.aempathy.empushy/raw/news_word_vector.txt")
-
-        val id = this.resources.getIdentifier("news_word_vector", "raw", this.packageName)
-        val file = File(this.getFilesDir().toString()+File.separator+"news_word_vector.txt")
-        try {
-            val inputStream = resources.openRawResource(id)
-            val fileOutputStream = FileOutputStream(file)
-
-            val buf = ByteArray(1024)
-            var len = inputStream.read(buf)
-            while(len > 0) {
-                fileOutputStream.write(buf,0,len);
-                len = inputStream.read(buf)
-            }
-
-            fileOutputStream.close();
-            inputStream.close();
-        } catch (e1: IOException) {}
-        val word2Vec = WordVectorSerializer.readWord2VecModel(file)
-        val vector = word2Vec.getWordVector("this")
-        Log.d(TAG, "My vector: "+Arrays.toString(vector))
-        val st = StringTokenizer("this is a test")
-        val tokens = mutableListOf<String>()
-        while (st.hasMoreTokens()) {
-            tokens.add(st.nextToken())
-        }
-        Log.d(TAG, tokens.toString())
     }
 }

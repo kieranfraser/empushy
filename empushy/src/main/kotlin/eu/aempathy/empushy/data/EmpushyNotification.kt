@@ -22,6 +22,7 @@ data class EmpushyNotification(
         @SerializedName("notifyId") var notifyId: Int ?= NOTIFICATION_INTEGER_DEFAULT,
         @SerializedName("empushyNotifyId") var empushyNotifyId: Int ?= NOTIFICATION_INTEGER_DEFAULT,
         @SerializedName("category") var category: String ?= NOTIFICATION_STRING_DEFAULT,
+        @SerializedName("subject") var subject: String ?= NOTIFICATION_STRING_DEFAULT,
         @SerializedName("appLastUsed") var appLastUsed: Long ?= NOTIFICATION_LONG_DEFAULT,
         @SerializedName("extraBigText") var extraBigText: String ?= NOTIFICATION_STRING_DEFAULT,
         @SerializedName("infoText") var infoText: String ?= NOTIFICATION_STRING_DEFAULT,

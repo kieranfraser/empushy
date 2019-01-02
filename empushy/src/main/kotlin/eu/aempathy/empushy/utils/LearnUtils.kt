@@ -1,10 +1,8 @@
 package eu.aempathy.empushy.utils
 
 import android.util.Log
-import com.google.gson.Gson
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.init.Empushy.EMPUSHY_TAG
-import eu.aempathy.empushy.services.EmpushyNotificationService
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -12,7 +10,7 @@ import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
-import java.util.HashMap
+import java.util.*
 
 /**
  * Created by Kieran on 23/09/2018.
@@ -65,6 +63,7 @@ class LearnUtils {
             }
             return list
         }
+
     }
 
 }
