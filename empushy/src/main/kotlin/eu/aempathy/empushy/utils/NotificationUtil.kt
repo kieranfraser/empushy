@@ -14,6 +14,10 @@ import com.aempathy.NLPAndroid.TopicClassifier
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.data.Feature
 import eu.aempathy.empushy.services.EmpushyNotificationService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 /**
@@ -23,6 +27,7 @@ import eu.aempathy.empushy.services.EmpushyNotificationService
 object NotificationUtil {
 
     private val TAG = NotificationUtil::class.java.simpleName
+    private val TOPIC_DEFAULT = "unknown"
 
     fun simplePackageName(context: Context, packageName: String): String {
         var appName = "(unknown)"
@@ -111,7 +116,15 @@ object NotificationUtil {
                 else
                     ""
             }
-            notification.subject = topicClassifier?.classifyTopic(extractUsefulText(notification))
+
+            var topic = TOPIC_DEFAULT
+            runBlocking {
+                launch (Dispatchers.Default) {
+                    val gResult = async { topicClassifier?.classifyTopic(extractUsefulText(notification)) }
+                    topic = gResult.await()?:TOPIC_DEFAULT
+                }
+            }
+            notification.subject = topic
         }
 
         feature = features.filter { f -> f.name == "category" }

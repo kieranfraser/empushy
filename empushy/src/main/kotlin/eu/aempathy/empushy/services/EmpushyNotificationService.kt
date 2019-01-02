@@ -319,7 +319,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
         activeList = mutableListOf()
         cachedList = ArrayList()
-        topicClassifier = TopicClassifier(this)
+        topicClassifier = TopicClassifier(this, false)
 
         try {
             featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
@@ -405,13 +405,20 @@ class EmpushyNotificationService : NotificationListenerService() {
         if (authInstance != null && runningService) {
             val currentUser = authInstance?.currentUser
             if (currentUser != null && sbn.packageName != applicationContext.packageName) {
-                try {
-                    val taskPosted = NotificationPostedTask(applicationContext, activeList
-                            ?: mutableListOf(),
-                            featureManager!!, authInstance!!, ref!!, this, topicClassifier?:TopicClassifier(this))
-                    taskPosted.execute(*arrayOf(sbn))
-                    cancelNotification(sbn.key)
-                }catch (e: Exception){Log.d(TAG, "Exception starting posted background task: "+e.toString())}
+                // other conditions for not analysing a notification e.g. continuous, not clearable, blacklisted etc.
+                // should prevent things such as Spotifiy player notification.
+                if(sbn.isClearable && !sbn.isOngoing) {
+                    try {
+                        val taskPosted = NotificationPostedTask(applicationContext, activeList
+                                ?: mutableListOf(),
+                                featureManager!!, authInstance!!, ref!!, this, topicClassifier
+                                ?: TopicClassifier(this, false))
+                        taskPosted.execute(*arrayOf(sbn))
+                        cancelNotification(sbn.key)
+                    } catch (e: Exception) {
+                        Log.d(TAG, "Exception starting posted background task: " + e.toString())
+                    }
+                }
             }
         }
         // update notification

@@ -27,23 +27,8 @@ android {
         main.java.srcDirs += 'src/main/kotlin'
         androidTest.java.srcDirs += 'src/androidTest/kotlin'
     }
-
-    aaptOptions {
-        noCompress "tflite"
-        noCompress "lite"
-    }
-
 }
 
-ext {
-    dl4jVersion = "1.0.0-beta3"
-    slf4jVersion = "1.7.25"
-}
-
-configurations {
-    all*.exclude group: 'commons-logging'
-    all*.exclude group: 'org.nd4j', module: 'nd4j-base64'
-}
 
 dependencies {
     final permissionVersion = '3.2.0'
@@ -62,6 +47,6 @@ dependencies {
     api 'com.google.code.gson:gson:2.8.2'
     api 'com.github.PhilJay:MPAndroidChart:v3.0.3'
 
-    api 'com.github.kieranfraser:nlpandroid:v1.0.0'
+    api 'com.github.kieranfraser:nlpandroid:v1.0.1'
 }
 apply plugin: 'kotlin-android-extensions'
