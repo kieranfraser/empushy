@@ -10,7 +10,8 @@ import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.aempathy.NLPAndroid.TopicClassifier
+import com.aempathy.NLPAndroid.NLP
+import com.aempathy.NLPAndroid.models.Entity
 import eu.aempathy.empushy.data.EmpushyNotification
 import eu.aempathy.empushy.data.Feature
 import eu.aempathy.empushy.services.EmpushyNotificationService
@@ -28,6 +29,8 @@ object NotificationUtil {
 
     private val TAG = NotificationUtil::class.java.simpleName
     private val TOPIC_DEFAULT = "unknown"
+    private val SENTIMENT_DEFAULT = -1.0
+    private val ENTITIES_DEFAULT = mutableListOf<Entity>()
 
     fun simplePackageName(context: Context, packageName: String): String {
         var appName = "(unknown)"
@@ -46,7 +49,7 @@ object NotificationUtil {
     }
 
     fun extractNotificationPostedValue(notification: EmpushyNotification, sbn: StatusBarNotification, context: Context,
-                                       features: List<Feature>, topicClassifier: TopicClassifier?) {
+                                       features: List<Feature>, nlp: NLP?) {
 
         val n = sbn.notification
 
@@ -117,14 +120,34 @@ object NotificationUtil {
                     ""
             }
 
+            val usefulText = extractUsefulText(notification)
+
             var topic = TOPIC_DEFAULT
             runBlocking {
                 launch (Dispatchers.Default) {
-                    val gResult = async { topicClassifier?.classifyTopic(extractUsefulText(notification)) }
+                    val gResult = async { nlp?.classifyTopic(usefulText) }
                     topic = gResult.await()?:TOPIC_DEFAULT
                 }
             }
             notification.subject = topic
+
+            var sentiment = SENTIMENT_DEFAULT
+            runBlocking {
+                launch (Dispatchers.Default) {
+                    val gResult = async { nlp?.classifySentiment(usefulText) }
+                    sentiment = gResult.await()?: SENTIMENT_DEFAULT
+                }
+            }
+            notification.sentiment = sentiment
+
+            var entities = ENTITIES_DEFAULT
+            runBlocking {
+                launch (Dispatchers.Default) {
+                    val gResult = async { nlp?.namedEntityRecognition(usefulText) }
+                    entities = gResult.await()?: ENTITIES_DEFAULT
+                }
+            }
+            notification.entities = ArrayList(entities)
         }
 
         feature = features.filter { f -> f.name == "category" }

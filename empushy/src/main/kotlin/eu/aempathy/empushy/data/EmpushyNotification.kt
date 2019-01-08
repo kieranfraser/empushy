@@ -1,5 +1,6 @@
 package eu.aempathy.empushy.data
 
+import com.aempathy.NLPAndroid.models.Entity
 import com.google.gson.annotations.SerializedName
 import org.json.JSONObject
 import java.io.Serializable
@@ -23,6 +24,8 @@ data class EmpushyNotification(
         @SerializedName("empushyNotifyId") var empushyNotifyId: Int ?= NOTIFICATION_INTEGER_DEFAULT,
         @SerializedName("category") var category: String ?= NOTIFICATION_STRING_DEFAULT,
         @SerializedName("subject") var subject: String ?= NOTIFICATION_STRING_DEFAULT,
+        @SerializedName("sentiment") var sentiment: Double ?= NOTIFICATION_DOUBLE_DEFAULT,
+        @SerializedName("entities") var entities: ArrayList<Entity> ?= arrayListOf(),
         @SerializedName("appLastUsed") var appLastUsed: Long ?= NOTIFICATION_LONG_DEFAULT,
         @SerializedName("extraBigText") var extraBigText: String ?= NOTIFICATION_STRING_DEFAULT,
         @SerializedName("infoText") var infoText: String ?= NOTIFICATION_STRING_DEFAULT,

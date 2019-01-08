@@ -19,7 +19,7 @@ import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
-import com.aempathy.NLPAndroid.TopicClassifier
+import com.aempathy.NLPAndroid.NLP
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -58,7 +58,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     var featureRef: DatabaseReference ?= null
     var featureManager: FeatureManager?= null
     var featureListener: ValueEventListener ?= null
-    var topicClassifier: TopicClassifier?= null
+    var nlp: NLP?= null
 
     private var runningRef: DatabaseReference ?= null
     private var runningListener: ChildEventListener ?= null
@@ -319,7 +319,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         ref = FirebaseDatabase.getInstance(firebaseApp!!).reference
         activeList = mutableListOf()
         cachedList = ArrayList()
-        topicClassifier = TopicClassifier(this, false)
+        nlp = NLP(this, false)
 
         try {
             featureManager = FeatureManager(arrayListOf(), listOf(), ref!!, authInstance?.currentUser?.uid!!)
@@ -411,8 +411,8 @@ class EmpushyNotificationService : NotificationListenerService() {
                     try {
                         val taskPosted = NotificationPostedTask(applicationContext, activeList
                                 ?: mutableListOf(),
-                                featureManager!!, authInstance!!, ref!!, this, topicClassifier
-                                ?: TopicClassifier(this, false))
+                                featureManager!!, authInstance!!, ref!!, this, nlp
+                                ?: NLP(this, false))
                         taskPosted.execute(*arrayOf(sbn))
                         cancelNotification(sbn.key)
                     } catch (e: Exception) {
@@ -427,7 +427,7 @@ class EmpushyNotificationService : NotificationListenerService() {
     private class NotificationPostedTask(context: Context, activeList: MutableList<EmpushyNotification>, featureManager: FeatureManager,
                                          authInstance: FirebaseAuth, ref: DatabaseReference,
                                          service: EmpushyNotificationService,
-                                         topicClassifier: TopicClassifier) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
+                                         topicClassifier: NLP) : AsyncTask<StatusBarNotification, EmpushyNotification, String>() {
 
         private val TAG = EMPUSHY_TAG + NotificationPostedTask::class.java.simpleName
         private val contextRef: WeakReference<Context>
@@ -436,7 +436,7 @@ class EmpushyNotificationService : NotificationListenerService() {
         private val refRef: WeakReference<DatabaseReference>
         private val serviceRef: WeakReference<EmpushyNotificationService>
         private val featureManagerRef: WeakReference<FeatureManager>
-        private val topicClassifierRef: WeakReference<TopicClassifier>
+        private val topicClassifierRef: WeakReference<NLP>
 
         init {
             this.contextRef = WeakReference(context)
